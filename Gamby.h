@@ -2,7 +2,7 @@
 #define Gamby_h
 
 #include "WProgram.h"
-
+#include <avr/pgmspace.h>
 
 // ###########################################################################
 //
@@ -75,6 +75,35 @@
 #define INVERSE        0xFF // light text, dark background
 
 
+// draw mode flags
+// Maybe all the flags should be merged into an int.
+#define FILL_BLACK_TRANSPARENT  B00000001
+#define FILL_WHITE_TRANSPARENT  B00000010
+#define FILL_NONE               B00000011  // Both colors transparent equals none.
+#define FILL_MODE_INVERSE       B00000100
+#define DRAW_BLACK_TRANSPARENT  B00001000
+#define DRAW_WHITE_TRANSPARENT  B00010000
+#define DRAW_NONE               B00011000  // Both colors transparent equals none.
+#define DRAW_MODE_INVERSE       B00100000
+
+
+// Fill patterns (4x4 pixel grids as 16b ints)
+#define PATTERN_WHITE           0x0000
+#define PATTERN_BLACK           0xFFFF
+#define PATTERN_GRAY            0x5a5a  // B0101101001011010
+#define PATTERN_DK_GRAY         0xfaf5  // B1111101011110101
+#define PATTERN_LT_GRAY         0x050a  // B0000010100001010
+#define PATTERN_DK_L_DIAGONAL   0xedb7  // B1110110110110111
+#define PATTERN_LT_L_DIAGONAL   0x1248  // B0001001001001000
+#define PATTERN_DK_R_DIAGONAL   0x7bde  // B0111101111011110
+#define PATTERN_LT_R_DIAGONAL   0x8421  // B1000010000100001
+#define PATTERN_DK_GRID_SOLID   0xeeef  // B1110111011101111
+#define PATTERN_LT_GRID_SOLID   0x1110  // B0001000100010000
+#define PATTERN_DK_GRID_DOTS    0xfafa  // B1111101011111010
+#define PATTERN_LT_GRID_DOTS    0x0505  // B0000010100000101
+#define PATTERN_CHECKER         0x33cc  // B0011001111001100
+#define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
+
 // ###########################################################################
 //
 // ###########################################################################
@@ -82,7 +111,19 @@
 /**
  *
  */
-class GambyTextMode {
+class GambyBase {
+ public:
+  void init();
+  void clockOut(byte);
+  void clockOutBit(boolean);
+  void sendCommand(byte);
+  void sendCommand(byte, byte);
+};
+
+/**
+ *
+ */
+class GambyTextMode: public GambyBase {
  public:
   GambyTextMode();
 
@@ -93,7 +134,7 @@ class GambyTextMode {
 /**
  *
  */
-class GambyBlockMode {
+class GambyBlockMode: public GambyBase {
  public:
   GambyBlockMode();
 
@@ -101,15 +142,30 @@ class GambyBlockMode {
 
 };
 
+#define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3
 
 /**
  *
  */
-class GambyGraphicsMode {
+class GambyGraphicsMode: public GambyBase {
  public:
   GambyGraphicsMode();
+  void update();
+  void setPixel(byte, byte, int);
+  void setPixel(byte, byte, boolean);
+  boolean getPatternPixel(byte, byte, int);
+  void setPos(byte, byte);
+  void drawSprite(const prog_uchar *, byte, byte);
+  void drawSprite(const prog_uchar *, const prog_uchar *, byte, byte);
+
+  unsigned int drawPattern;
+  unsigned int drawMode;
 
  private:
+  byte offscreen[NUM_COLUMNS][NUM_PAGES];
+  byte dirtyBits[NUM_DIRTY_COLUMNS];
+
+  void updateBlock(byte, byte);
 
 };
 
