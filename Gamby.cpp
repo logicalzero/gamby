@@ -120,6 +120,24 @@ void GambyBase::sendCommand(byte b1, byte b2) {
   digitalWrite(CS, HIGH);
 }
 
+
+/**
+ *
+ */
+void GambyBase::clearDisplay () {
+  byte i,j;
+  for (i=0; i < NUM_PAGES; i++) {
+    sendCommand(SET_PAGE_ADDR | i);
+    sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
+    digitalWrite(RS, DATA);
+    digitalWrite(CS, LOW);
+    for (j = 0; j < NUM_COLUMNS; j++) {
+      clockOut(0);
+    }
+    digitalWrite(CS, HIGH);
+  }
+}
+
 // ###########################################################################
 //
 // ###########################################################################
@@ -128,6 +146,189 @@ void GambyBase::sendCommand(byte b1, byte b2) {
  *
  */
 GambyTextMode::GambyTextMode() {
+  currentLine = 0;
+  currentColumn = 0;
+  offset = 0;
+
+  wrapMode = WRAP_WORD;
+  scrollMode = SCROLL_NORMAL;
+}
+
+
+/**
+ *
+ */
+void GambyTextMode::scroll(int s) {
+  offset += s;
+  if (offset >= NUM_PAGES)
+    offset -= NUM_PAGES;
+  else if (offset < 0)
+    offset += NUM_PAGES;
+
+  sendCommand(SET_INITIAL_COM0_1, (byte)offset << 3);  // shift 3 places to multiply by 8.
+}
+
+
+/**
+ *
+ */
+void GambyTextMode::setColumn (byte column) {
+  sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), B00001111 & column); // & to mask out high bits
+}
+
+
+/**
+ * setPos(): Set the cursor's column and line (relative to current scrolling).
+ *
+ * @param col: The column (0 to 95)
+ * @param line: The 8 pixel line (0 to 7)
+ */
+void GambyTextMode::setPos(byte col, byte line) {
+  currentColumn = col;
+  int l = line - offset;
+  if (l < 0)
+    l += NUM_PAGES;
+  sendCommand(SET_PAGE_ADDR | (byte)l);
+  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), SET_COLUMN_ADDR_2 | (currentColumn & B00001111)); 
+}
+
+
+/**
+ * getCharWidth(): Retrieves the width of a given character.
+ *
+ * @param idx:The actual index into font data (ASCII value - 32)
+ * @return: The character's with in pixels
+ */
+byte GambyTextMode::getCharWidth(byte idx) {
+  return (byte)(pgm_read_dword(&font[idx]) & 0x0F); 
+}
+
+
+/**
+ * getCharBaseline(): Get the vertical offset of a character.
+ *
+ * @param idx: The actual index into font data (ASCII value - 32)
+ * @return: The character's vertical offset
+ */
+byte GambyTextMode::getCharBaseline(byte idx) {
+  return (byte)((pgm_read_dword(&font[idx]) >> 4) & 0x07);
+}
+
+
+/**
+ * drawChar(): Draw a character at the current screen position.
+ *
+ * @param c: is the ASCII character to draw.
+ * @param inverse: is either NORMAL or INVERSE.
+ */
+void GambyTextMode::drawChar(char c, int inverse) {
+  byte idx = byte(c) - 32;  // index into font data array
+  long d = (long)pgm_read_dword(&font[idx]);  // character data
+  byte w = (byte)(d & 0x0F);  // character width
+  byte b = (byte)((d >> 4) & 0x07); // character baseline offset
+
+  byte i,j,k;
+
+  if (w + currentColumn > NUM_COLUMNS) {
+    newline();
+  }
+  digitalWrite(CS, LOW);
+  digitalWrite(RS, DATA);
+  for (i = 0; i < w; i++) {
+    // fill to baseline
+    for (k = 0; k < (2 - b); k++)
+      clockOutBit(inverse);
+
+    // draw column of font bitmap
+    for (j = 0; j < 5; j++) {
+      clockOutBit(((d >> 31) ^ inverse) & 1);	// clock out MSBit of data
+      d = d << 0x01;
+    }
+
+    // fill out top of character.
+    for (k = 0; k<= b; k++)
+      clockOutBit(inverse);    
+  }
+  // Draw gap ('kerning') between letters, 1px wide.
+  clockOut(inverse);
+  digitalWrite(CS, HIGH);
+
+  currentColumn += w + 1;
+}
+
+
+/**
+ * drawText(): Write a sring to the display.
+ *
+ * @param s: the string to draw.
+ * @param inverse: either NORMAL or INVERSE (0x00 or 0xFF).
+ */
+void GambyTextMode::drawText (char* s, int inverse) {
+  int c = 0;
+  while (s[c] != '\0') {
+    if (s[c] == '\n')
+      newline();
+    else
+      drawChar(s[c], inverse);
+    c++;
+  }
+}
+
+/**
+ * clearLine(): Clears the current line right of the current column.
+ *
+ */
+void GambyTextMode::clearLine () {
+  byte j;
+  digitalWrite(RS, DATA);
+  digitalWrite(CS, LOW);
+  for (j = currentColumn; j <= LAST_COL; j++) {
+    clockOut(0);
+  }
+  // restore previous column.
+  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), B00001111 & currentColumn); // & to mask out high bits
+
+  //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
+  digitalWrite(CS, HIGH);
+}
+
+
+/**
+ * clearScreen(): Text-specific clear screen; resets scrolling offset.
+ *
+ */
+void GambyTextMode::clearScreen() {
+  currentColumn = 0;
+  currentLine = 0;
+  offset = 0;
+  clearDisplay();
+}
+
+
+/**
+ *
+ */
+void GambyTextMode::newline() {
+  currentLine++;
+  if (currentLine >= NUM_PAGES) {
+    switch (scrollMode) {
+    case SCROLL_WRAP:
+      currentLine = 0;
+      break;
+
+    case SCROLL_NORMAL:
+      scroll(-1);
+
+    default:
+      // both SCROLL_NORMAL and SCROLL_NONE set the current line to the last.
+      currentLine = (NUM_PAGES - 1);
+    }
+  }
+  sendCommand(SET_PAGE_ADDR | (currentLine - offset));
+  sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
+  currentColumn = 0;
+  clearLine();
+
 }
 
 
@@ -261,7 +462,8 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
  *
  * @param x: Horizontal position on screen.
  * @param y: Vertical position on screen.
- * @param pattern: An `int`, interpreted as a 4-by-4 bitmap.
+ * @param pattern: A 16b `int`, interpreted as a 4-by-4 bitmap.
+ * @return: The pixel for the given coordinates in the given pattern (0 or 1).
  */
 boolean GambyGraphicsMode::getPatternPixel (byte x, byte y, int pattern) {
   int i;
@@ -275,6 +477,7 @@ boolean GambyGraphicsMode::getPatternPixel (byte x, byte y, int pattern) {
   // only final bit determines pixel
   return (((pattern >> i) & 1) == 1);
 }
+
 
 /**
  * drawSprite (plain version): Draw a bitmap graphic.

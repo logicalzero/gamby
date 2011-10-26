@@ -104,6 +104,25 @@
 #define PATTERN_CHECKER         0x33cc  // B0011001111001100
 #define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
 
+
+
+#define TAB_WIDTH      8
+
+// Word wrap modes
+#define WRAP_NONE      0    // text extends off beyond the right side of the screen. Fastest.
+#define WRAP_CHAR      1    // text wraps at the character that would extend beyond screen width.
+#define WRAP_WORD      2    // text breaks on whitespace. Slowest.
+
+// Screen scrolling modes. NORMAL is marginally slower than the other two.
+#define SCROLL_NONE    0    // text goes off the bottom of the screen.
+#define SCROLL_NORMAL  1    // the entire display scrolls vertically when the bottom of the display is reached.
+#define SCROLL_WRAP    2    // Text resumes on the top line of the display after reaching the bottom.
+
+// Drawing modes
+#define NORMAL         0    // dark text, light background
+#define INVERSE        0xFF // light text, dark background
+
+
 // ###########################################################################
 //
 // ###########################################################################
@@ -118,7 +137,9 @@ class GambyBase {
   void clockOutBit(boolean);
   void sendCommand(byte);
   void sendCommand(byte, byte);
+  void clearDisplay();
 };
+
 
 /**
  *
@@ -126,8 +147,25 @@ class GambyBase {
 class GambyTextMode: public GambyBase {
  public:
   GambyTextMode();
+  void setPos(byte, byte);
+  void setColumn(byte);
+  byte getCharWidth(byte);
+  byte getCharBaseline(byte);
+  void drawChar(char, int);
+  void drawText(char *, int);
+  void clearLine();
+  void clearScreen();
+  void newline();
+  void scroll(int);
+
+  byte wrapMode;
+  byte scrollMode;
+  const prog_uchar* font;
 
  private:
+  byte currentLine;
+  byte currentColumn;
+  int offset;
 
 };
 
@@ -139,7 +177,6 @@ class GambyBlockMode: public GambyBase {
   GambyBlockMode();
 
  private:
-
 };
 
 #define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3
@@ -161,10 +198,10 @@ class GambyGraphicsMode: public GambyBase {
   unsigned int drawPattern;
   unsigned int drawMode;
 
- private:
   byte offscreen[NUM_COLUMNS][NUM_PAGES];
   byte dirtyBits[NUM_DIRTY_COLUMNS];
 
+ private:
   void updateBlock(byte, byte);
 
 };
