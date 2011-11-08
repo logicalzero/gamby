@@ -2,9 +2,11 @@
 #include "Gamby.h"
 
 
-// ###########################################################################
-//
-// ###########################################################################
+#define SWAP(x,y) x0^=y0^=x0^=y0
+
+/****************************************************************************
+ * 
+ ****************************************************************************/
 
 const int SID =	8;	// Data
 const int SCK =	10;	// Clock
@@ -13,12 +15,19 @@ const int RES =	12; 	// Reset
 const int CS  =	13;    	// Chip select (inverted)
 
 
-// ###########################################################################
-//
-// ###########################################################################
+/****************************************************************************
+ * 
+ ****************************************************************************/
+
+#ifndef Gamby
+#define Gamby
+
+byte GambyBase::inputs = 0;
+
 
 /**
- * Initialize the GAMBY LCD.
+ * init(): Initialize the GAMBY LCD.
+ *
  */
 void GambyBase::init() {
   // Direct port manipulation to set output on pins 8-12.  
@@ -52,18 +61,26 @@ void GambyBase::init() {
   sendCommand(CLEAR_POWER_SAVE);
   sendCommand(DISPLAY_INVERT | DISPLAY_INVERT_VAL);
   
-  //  clearDisplay();
   sendCommand(DISPLAY_POWER | ON);
-  
-  //  clearDisplay();
 
   digitalWrite(RS, DATA);
   digitalWrite(CS, LOW);
+
+  // Set up inputs
+  inputs = 0;
+  digitalWrite(18, LOW);
+  digitalWrite(19, LOW);
+
+  // Set Pins 2-8 as input, activate pull-up resistors   
+  DDRD = DDRD & B00000011;
+  PORTD = PORTD | B11111100;
 }
 
 
 /**
+ * clockOut(): Send a byte to the LCD.
  *
+ * @param data: The byte to send
  */
 void GambyBase::clockOut(byte data) {
   
@@ -84,7 +101,9 @@ void GambyBase::clockOut(byte data) {
 
 
 /**
- *
+ * clockOutBit(): Send a single bit to the LCD.
+ * 
+ * @param b: The bit to send
  */
 void GambyBase::clockOutBit(boolean b) {
   digitalWrite(SID, HIGH);  // necessary?
@@ -99,29 +118,36 @@ void GambyBase::clockOutBit(boolean b) {
 
 
 /**
+ * sendCommand(): Send a single-byte command to the LCD.
  *
+ * @param command: The command to send, i.e. one of the constants,
  */
 void GambyBase::sendCommand (byte command) {
   digitalWrite(RS, COMMAND);
   digitalWrite(CS, LOW);
-  clockOut(command); // shiftOut(SID, SCK, MSBFIRST, command);
+  clockOut(command);
   digitalWrite(CS, HIGH);
 }
 
 
 /**
+ * sendCommand(): Send a two-byte command to the LCD.
  *
+ * @param b1: The first byte
+ * @param b2: The second byte
  */
 void GambyBase::sendCommand(byte b1, byte b2) {
   digitalWrite(RS, COMMAND);
   digitalWrite(CS, LOW);
-  clockOut(b1); //  shiftOut(SID, SCK, MSBFIRST, b1);
-  clockOut(b2); //  shiftOut(SID, SCK, MSBFIRST, b2);
+  clockOut(b1);
+  clockOut(b2);
   digitalWrite(CS, HIGH);
 }
 
 
 /**
+ * clearDisplay(): Erase the screen contents and place the cursor in the first
+ * column of the first row.
  *
  */
 void GambyBase::clearDisplay () {
@@ -138,11 +164,46 @@ void GambyBase::clearDisplay () {
   }
 }
 
-// ###########################################################################
-//
-// ###########################################################################
 
 /**
+ * readInputs(): Read the state of the DPad and buttons, then set the object's
+ * `inputs` variable.
+ *
+ */
+void GambyBase::readInputs() {
+  // Digital pin 19 (A5) INPUT, digital pin 18 (A4) OUTPUT
+  DDRC = (DDRC & B11001111) | B00010000;
+  delay(1); // Not waiting gets inconsistent results. TODO: Determine how long is enough.
+  inputs = PIND >> 4;
+  
+  // Digital pin 18 (A4) INPUT, digital pin 19 (A5) OUTPUT
+  DDRC = (DDRC & B11001111) | B00100000;  
+  delay(1);
+  
+  inputs = ~((PIND &  B11110000) | inputs);
+}
+
+
+/**
+ * setPos(): Set the column and page location at which the next data will be
+ * displayed.
+ *
+ * @param col:
+ * @param line:
+ */
+void GambyBase::setPos(byte col, byte line) {
+  sendCommand(SET_PAGE_ADDR | line);
+  sendCommand(SET_COLUMN_ADDR_1 + ((col >> 4) & B00000111), 
+	      SET_COLUMN_ADDR_2 | (col & B00001111)); 
+}
+
+
+/****************************************************************************
+ * 
+ ****************************************************************************/
+
+/**
+ * Constructor.
  *
  */
 GambyTextMode::GambyTextMode() {
@@ -156,7 +217,9 @@ GambyTextMode::GambyTextMode() {
 
 
 /**
+ * scroll(): 
  *
+ * @param s: The number of lines to scroll, positive or negative.
  */
 void GambyTextMode::scroll(int s) {
   offset += s;
@@ -165,15 +228,19 @@ void GambyTextMode::scroll(int s) {
   else if (offset < 0)
     offset += NUM_PAGES;
 
-  sendCommand(SET_INITIAL_COM0_1, (byte)offset << 3);  // shift 3 places to multiply by 8.
+  sendCommand(SET_INITIAL_COM0_1, 
+	      (byte)offset << 3);  // shift 3 places to multiply by 8.
 }
 
 
 /**
+ * setColumn(): Set the horizontal position of the cursor.
  *
+ * @param column:
  */
 void GambyTextMode::setColumn (byte column) {
-  sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), B00001111 & column); // & to mask out high bits
+  sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), 
+	      B00001111 & column); // & to mask out high bits
 }
 
 
@@ -189,7 +256,8 @@ void GambyTextMode::setPos(byte col, byte line) {
   if (l < 0)
     l += NUM_PAGES;
   sendCommand(SET_PAGE_ADDR | (byte)l);
-  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), SET_COLUMN_ADDR_2 | (currentColumn & B00001111)); 
+  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
+	      SET_COLUMN_ADDR_2 | (currentColumn & B00001111)); 
 }
 
 
@@ -258,7 +326,7 @@ void GambyTextMode::drawChar(char c, int inverse) {
 
 
 /**
- * drawText(): Write a sring to the display.
+ * drawText(): Write a string to the display.
  *
  * @param s: the string to draw.
  * @param inverse: either NORMAL or INVERSE (0x00 or 0xFF).
@@ -273,6 +341,25 @@ void GambyTextMode::drawText (char* s, int inverse) {
     c++;
   }
 }
+
+
+/** 
+ * drawText_P(): Write a PROGMEM string to the display.
+ *
+ * @param s: the PROGMEM address of the string to draw.
+ * @param inverse: either NORMAL or INVERSE (0x00 or 0xFF).
+ */
+void GambyTextMode::drawText_P(const char *s, int inverse) {
+  char c = pgm_read_byte(s);
+  while (c != '\0') {
+    if (c == '\n')
+      newline();
+    else
+      drawChar(c, inverse);
+    c = pgm_read_byte(++s);
+  }
+}
+
 
 /**
  * clearLine(): Clears the current line right of the current column.
@@ -306,7 +393,8 @@ void GambyTextMode::clearScreen() {
 
 
 /**
- *
+ * newline():
+ * 
  */
 void GambyTextMode::newline() {
   currentLine++;
@@ -332,22 +420,29 @@ void GambyTextMode::newline() {
 }
 
 
-// ###########################################################################
-//
-// ###########################################################################
+/****************************************************************************
+ * 
+ ****************************************************************************/
 
 /**
+ * Constructor.
  *
  */
 GambyBlockMode::GambyBlockMode() {
 }
 
 
-// ###########################################################################
-//
-// ###########################################################################
+/****************************************************************************
+ * 
+ ****************************************************************************/
+
+#ifdef SKIP_THIS_STUFF
+
+unsigned int GambyGraphicsMode::drawPattern;
+unsigned int GambyGraphicsMode::drawMode;
 
 /**
+ * Constructor.
  *
  */
 GambyGraphicsMode::GambyGraphicsMode() {
@@ -356,16 +451,11 @@ GambyGraphicsMode::GambyGraphicsMode() {
 
 
 /**
+ * setPixel(): Set a pixel explicitly on or off.
  *
- */
-void GambyGraphicsMode::setPos(byte col, byte line) {
-  sendCommand(SET_PAGE_ADDR | line);
-  sendCommand(SET_COLUMN_ADDR_1 + ((col >> 4) & B00000111), SET_COLUMN_ADDR_2 | (col & B00001111)); 
-}
-
-
-/**
- *
+ * @param x: The pixel's horizontal position
+ * @param y: The pixel's vertical position
+ * @param p: The pixel, either off (0/false) or on (1/true)
  */
 void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
   byte c = x >> 3;            // column of dirtyBits to mark changed (x/8)
@@ -385,15 +475,18 @@ void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
 
 
 /**
- *
+ * setPixel(): Set a pixel using the current `drawPattern`.
+ * 
+ * @param x: The pixel's horizontal position
+ * @param y: The pixel's vertical position
  */
-void GambyGraphicsMode::setPixel(byte x, byte y, int pat) {
+void GambyGraphicsMode::setPixel(byte x, byte y) {
   byte c = x >> 3;            // column of dirtyBits to mark changed (x/8)
   byte r = y >> 3;            // row (page) of display, row of dirtyBits (y/8)
   byte b = y & B00000111;     // Bit number (within page) to change; low three bits
   byte oldOffscreen = offscreen[x][r]; // keep old offscreen to avoid unnecessary update
 
-  boolean p = getPatternPixel(x, y, pat);
+  boolean p = getPatternPixel(x, y);
   
   if (drawMode & DRAW_WHITE_TRANSPARENT || drawMode & DRAW_BLACK_TRANSPARENT) {
     if ((drawMode & DRAW_WHITE_TRANSPARENT) && !p)
@@ -458,24 +551,23 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
 
 /**
  * getPatternPixel():  Get pixel from a 4x4 grid (a 16b int) for the given
- * screen coordinates.
+ * screen coordinates. Uses the drawPattern variable.
  *
  * @param x: Horizontal position on screen.
  * @param y: Vertical position on screen.
- * @param pattern: A 16b `int`, interpreted as a 4-by-4 bitmap.
  * @return: The pixel for the given coordinates in the given pattern (0 or 1).
  */
-boolean GambyGraphicsMode::getPatternPixel (byte x, byte y, int pattern) {
+boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
   int i;
   // Don't do all the pattern-lookup work for solids
-  if (pattern == PATTERN_BLACK)
+  if (drawPattern == PATTERN_BLACK)
     return false; // i.e. 0
-  if (pattern == PATTERN_WHITE)
+  if (drawPattern == PATTERN_WHITE)
     return true; // i.e. 1
   // coordinates in pattern taken from least two bits of screen coords
   i = (x & B00000011) | ((y & B00000011) << 2);
   // only final bit determines pixel
-  return (((pattern >> i) & 1) == 1);
+  return (((drawPattern >> i) & 1) == 1);
 }
 
 
@@ -538,3 +630,188 @@ void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, const prog_uchar
     }
   }
 }
+
+
+/**
+ * line(): Draw a single-pixel-wide line between two points. 
+ * 
+ * @param x0: Start horizontal position
+ * @param y0: Start vertical postition
+ * @param x1: End horizontal position
+ * @param y1: End vertical position
+ */
+ void line(int x0, int y0, int x1, int y1) {
+  // A variation of Bresenham's line algorithm, cribbed from Wikipedia
+  // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+  
+  // My addition: use simpler method if line is horizontal (y0==y1)
+  if (y0 == y1) {
+    // make sure x0 is smaller than x1if (x0 > x1)
+      SWAP(x0, x1);
+    drawHline(x0, x1, y0);
+    return;
+  }
+  // My addition: use simpler method if line is vertical (x0==x1)
+  if (x0 == x1) {
+    // make sure y0 is smaller than y1
+    if (y0 > y1)
+      SWAP(y0, y1);
+    for (byte i=y0; i<=y1; i++) 
+      setPixel((byte)x0, i); 
+    return;
+  }
+
+  // cribbed code starts here
+  boolean steep = abs(y1 - y0) > abs(x1 - x0);
+  if (steep) {
+    SWAP(x0, y0);
+    SWAP(x1, y1);
+  }
+  if (x0 > x1) {
+    SWAP(x0, x1);
+    SWAP(y0, y1);
+  }
+
+  int deltax = x1 - x0;
+  int deltay = abs(y1 - y0);
+  int error = deltax >> 1;
+  int ystep = 1;
+  int y = y0;
+  int x = x0;
+
+  if (y0 >= y1)
+    ystep = -1;
+  for (x = x0; x < x1; x++) {
+    if (steep)
+      setPixel((byte)y,(byte)x);
+    else
+      setPixel((byte)x,(byte)y);
+    error = error - deltay;
+    if (error < 0) {
+      y += ystep;
+      error += deltax;
+    }
+  }
+} 
+
+///////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * circle(): Draw a circle centered at the given coordinates.
+ *
+ * @param cx: The horizontal posiiton of the circle's center
+ * @param cy: The vertical position of the circle's center
+ * @param radius: The circle's radius
+ *
+ */
+void GambyGraphicsMode::circle(int cx, int cy, int radius) {
+  int error = -radius;
+  int x = radius;
+  int y = 0;
+
+  if (radius > 0) { 
+    // The following while loop may altered to 'while (x > y)' for a
+    // performance benefit, as long as a call to 'plot4points' follows
+    // the body of the loop. This allows for the elimination of the
+    // '(x != y') test in 'plot8points', providing a further benefit.
+    //
+    // For the sake of clarity, this is not shown here.
+    while (x >= y) {
+      plot8points(cx, cy, x, y);
+ 
+      error += y;
+      ++y;
+      error += y;
+
+      // The following test may be implemented in assembly language in
+      // most machines by testing the carry flag after adding 'y' to
+      // the value of 'error' in the previous step, since 'error'
+      // nominally has a negative value.
+      if (error >= 0) {
+          --x;
+          error -= x;
+          error -= x;
+      }
+    }
+  }
+}
+
+
+/**
+ * plot8points(): Draws eight points. Used by the circle drawing.
+ */
+void GambyGraphicsMode::plot8points(int cx, int cy, int x, int y) {
+  plot4points(cx, cy, x, y);
+  if (x != y) 
+    plot4points(cx, cy, y, x);
+}
+ 
+
+/**
+ * plot4points(): Draws four points. Used by the circle drawing.
+ * The 4th point can be omitted if the radius is known to be nonzero.
+ */
+void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
+  setPixel(cx + x, cy + y);
+  if (x != 0)
+    setPixel(cx - x, cy + y);
+  if (y != 0) 
+    setPixel(cx + x, cy - y);
+  if (x != 0 && y != 0) 
+    setPixel(cx - x, cy - y);
+}
+
+
+/**
+ * plot4lines(): Not currently used; part of filled circle drawing.
+ *
+ */
+void GambyGraphicsMode::plot4lines(int cx, int cy, int x, int y) {
+  int xplus = cx + x;
+  int yplus = cy + y;
+  int xminus = cx - x;
+  int yminus = cy - y;
+
+  line(x, yplus, xplus, yplus);
+  if (x != 0) 
+    line(x, yplus, xminus, yplus);
+  if (y != 0) 
+    line(x, yminus, xplus, yminus);
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * plot2lines(): Not currently used; part of filled circle drawing.
+ * 
+ */
+void GambyGraphicsMode::plot2lines(int cx, int cy, int x, int y) {
+
+  // One pixel long 'line'
+  if (x == 0) {
+    setPixel(x, cy+y);
+    if (y != 0)
+      setPixel(x, cy-y);
+    return;
+  }
+
+  drawHline(cx-x, cx+x, cy+y);
+  // Mirror vertically if not the centerline.
+  if (y != 0) 
+    drawHline(cx-x, cx+x, cy-y);
+}
+
+/**
+ * drawHLine(): Private. Draw a simple horizontal line.
+ *
+ * @param x1: first X coordinate, must be lower than x2
+ * @param x2: second X coordinate, must be greater than x1
+ * @param y: the common y coordinate
+ */
+ void GambyGraphicsMode::drawHline(int x1, int x2, int y) {
+  for(int i=x1; i<=x2; i++)
+    setPixel((byte)i, (byte)y);
+}
+
+#endif
+#endif

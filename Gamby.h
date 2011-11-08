@@ -3,6 +3,10 @@
 
 #include "WProgram.h"
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+#include <avr/io.h> 
+#include <inttypes.h>
+
 
 // ###########################################################################
 //
@@ -123,6 +127,17 @@
 #define INVERSE        0xFF // light text, dark background
 
 
+// Inputs
+#define DPAD_UP      B10000000
+#define DPAD_LEFT    B01000000
+#define DPAD_RIGHT   B00100000
+#define DPAD_DOWN    B00010000
+#define BUTTON_1     B00001000
+#define BUTTON_2     B00000100
+#define BUTTON_3     B00000010
+#define BUTTON_4     B00000001
+
+
 // ###########################################################################
 //
 // ###########################################################################
@@ -138,6 +153,13 @@ class GambyBase {
   void sendCommand(byte);
   void sendCommand(byte, byte);
   void clearDisplay();
+  void readInputs();
+  void setPos(byte, byte);
+
+  static byte inputs;
+
+ private:
+  static unsigned int toneTimeRemaining;
 };
 
 
@@ -153,6 +175,7 @@ class GambyTextMode: public GambyBase {
   byte getCharBaseline(byte);
   void drawChar(char, int);
   void drawText(char *, int);
+  void drawText_P(const char *, int);
   void clearLine();
   void clearScreen();
   void newline();
@@ -160,7 +183,7 @@ class GambyTextMode: public GambyBase {
 
   byte wrapMode;
   byte scrollMode;
-  const prog_uchar* font;
+  const prog_int32_t* font;
 
  private:
   byte currentLine;
@@ -181,6 +204,8 @@ class GambyBlockMode: public GambyBase {
 
 #define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3
 
+#ifdef SKIP_THIS_STUFF
+
 /**
  *
  */
@@ -188,23 +213,32 @@ class GambyGraphicsMode: public GambyBase {
  public:
   GambyGraphicsMode();
   void update();
-  void setPixel(byte, byte, int);
+  void setPixel(byte, byte);
   void setPixel(byte, byte, boolean);
-  boolean getPatternPixel(byte, byte, int);
-  void setPos(byte, byte);
+  boolean getPatternPixel(byte, byte);
   void drawSprite(const prog_uchar *, byte, byte);
   void drawSprite(const prog_uchar *, const prog_uchar *, byte, byte);
 
-  unsigned int drawPattern;
-  unsigned int drawMode;
+  void line(int, int, int, int);
+  void circle(int, int, int);
+
+  static unsigned int drawPattern;
+  static unsigned int drawMode;
 
   byte offscreen[NUM_COLUMNS][NUM_PAGES];
   byte dirtyBits[NUM_DIRTY_COLUMNS];
 
  private:
   void updateBlock(byte, byte);
+  void drawHline(int, int, int);
+  void plot2lines(int, int, int, int);
+  void plot4lines(int, int, int, int);
+  void plot4points(int, int, int, int);
+  void plot8points(int, int, int, int);
+
 
 };
 
+#endif
 
 #endif
