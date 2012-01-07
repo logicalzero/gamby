@@ -1,18 +1,17 @@
-#include "WProgram.h"
+#include "Arduino.h"
 #include "Gamby.h"
-
 
 #define SWAP(x,y) x0^=y0^=x0^=y0
 
 /****************************************************************************
- * 
+ * Pins
  ****************************************************************************/
 
-const int SID =	8;	// Data
-const int SCK =	10;	// Clock
-const int RS  =	11;	// Register Select (LOW = command, HIGH = data)
-const int RES =	12; 	// Reset
-const int CS  =	13;    	// Chip select (inverted)
+const int LCD_SID =	8;	// Data
+const int LCD_SCK =	10;	// Clock
+const int LCD_RS  =	11;	// Register Select (LOW = command, HIGH = data)
+const int LCD_RES =	12; 	// Reset (inverted)
+const int LCD_CS  =	13;    	// Chip select (inverted)
 
 
 /****************************************************************************
@@ -33,17 +32,17 @@ void GambyBase::init() {
   // Direct port manipulation to set output on pins 8-12.  
 //  DDRB = DDRB | B00011111;
   
-  pinMode(SID, OUTPUT);
-  pinMode(SCK, OUTPUT);
-  pinMode(RS,  OUTPUT);
-  pinMode(RES, OUTPUT);
-  pinMode(CS,  OUTPUT);
+  pinMode(LCD_SID, OUTPUT);
+  pinMode(LCD_SCK, OUTPUT);
+  pinMode(LCD_RS,  OUTPUT);
+  pinMode(LCD_RES, OUTPUT);
+  pinMode(LCD_CS,  OUTPUT);
 
-  digitalWrite(RES, LOW);
-  digitalWrite(CS, LOW);
-  digitalWrite(RES, HIGH);
-  digitalWrite(RS, HIGH);
-  digitalWrite(RS, LOW);
+  digitalWrite(LCD_RES, LOW);
+  digitalWrite(LCD_CS, LOW);
+  digitalWrite(LCD_RES, HIGH);
+  digitalWrite(LCD_RS, HIGH);
+  digitalWrite(LCD_RS, LOW);
   
   sendCommand(SOFT_RESET);
   sendCommand(SET_DUTY_1, SET_DUTY_2);
@@ -63,8 +62,8 @@ void GambyBase::init() {
   
   sendCommand(DISPLAY_POWER | ON);
 
-  digitalWrite(RS, DATA);
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_RS, DATA);
+  digitalWrite(LCD_CS, LOW);
 
   // Set up inputs
   inputs = 0;
@@ -85,18 +84,18 @@ void GambyBase::init() {
 void GambyBase::clockOut(byte data) {
   
   byte i;
-  digitalWrite(SID, HIGH);
-  digitalWrite(SCK, HIGH);
+  digitalWrite(LCD_SID, HIGH);
+  digitalWrite(LCD_SCK, HIGH);
     
   for (i=0; i<8; i++) {
-    digitalWrite(SID, (data & B10000000));	// clock out MSBit of data
-    digitalWrite(SCK, LOW);
-    digitalWrite(SCK, HIGH);
+    digitalWrite(LCD_SID, (data & B10000000));	// clock out MSBit of data
+    digitalWrite(LCD_SCK, LOW);
+    digitalWrite(LCD_SCK, HIGH);
     data = data << 0x01;
   }
 
   // Clock and data pins idle high
-  digitalWrite(SID, HIGH);
+  digitalWrite(LCD_SID, HIGH);
 }
 
 
@@ -106,14 +105,14 @@ void GambyBase::clockOut(byte data) {
  * @param b: The bit to send
  */
 void GambyBase::clockOutBit(boolean b) {
-  digitalWrite(SID, HIGH);  // necessary?
-  digitalWrite(SCK, HIGH);
-  digitalWrite(SID, b);
-  digitalWrite(SCK, LOW);
-  digitalWrite(SCK, HIGH);
+  digitalWrite(LCD_SID, HIGH);  // necessary?
+  digitalWrite(LCD_SCK, HIGH);
+  digitalWrite(LCD_SID, b);
+  digitalWrite(LCD_SCK, LOW);
+  digitalWrite(LCD_SCK, HIGH);
     
   // Clock and data pins idle high
-  digitalWrite(SID, HIGH);
+  digitalWrite(LCD_SID, HIGH);
 }
 
 
@@ -123,10 +122,10 @@ void GambyBase::clockOutBit(boolean b) {
  * @param command: The command to send, i.e. one of the constants,
  */
 void GambyBase::sendCommand (byte command) {
-  digitalWrite(RS, COMMAND);
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_RS, COMMAND);
+  digitalWrite(LCD_CS, LOW);
   clockOut(command);
-  digitalWrite(CS, HIGH);
+  digitalWrite(LCD_CS, HIGH);
 }
 
 
@@ -137,11 +136,11 @@ void GambyBase::sendCommand (byte command) {
  * @param b2: The second byte
  */
 void GambyBase::sendCommand(byte b1, byte b2) {
-  digitalWrite(RS, COMMAND);
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_RS, COMMAND);
+  digitalWrite(LCD_CS, LOW);
   clockOut(b1);
   clockOut(b2);
-  digitalWrite(CS, HIGH);
+  digitalWrite(LCD_CS, HIGH);
 }
 
 
@@ -155,12 +154,12 @@ void GambyBase::clearDisplay () {
   for (i=0; i < NUM_PAGES; i++) {
     sendCommand(SET_PAGE_ADDR | i);
     sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
-    digitalWrite(RS, DATA);
-    digitalWrite(CS, LOW);
+    digitalWrite(LCD_RS, DATA);
+    digitalWrite(LCD_CS, LOW);
     for (j = 0; j < NUM_COLUMNS; j++) {
       clockOut(0);
     }
-    digitalWrite(CS, HIGH);
+    digitalWrite(LCD_CS, HIGH);
   }
 }
 
@@ -300,8 +299,8 @@ void GambyTextMode::drawChar(char c, int inverse) {
   if (w + currentColumn > NUM_COLUMNS) {
     newline();
   }
-  digitalWrite(CS, LOW);
-  digitalWrite(RS, DATA);
+  digitalWrite(LCD_CS, LOW);
+  digitalWrite(LCD_RS, DATA);
   for (i = 0; i < w; i++) {
     // fill to baseline
     for (k = 0; k < (2 - b); k++)
@@ -319,7 +318,7 @@ void GambyTextMode::drawChar(char c, int inverse) {
   }
   // Draw gap ('kerning') between letters, 1px wide.
   clockOut(inverse);
-  digitalWrite(CS, HIGH);
+  digitalWrite(LCD_CS, HIGH);
 
   currentColumn += w + 1;
 }
@@ -367,8 +366,8 @@ void GambyTextMode::drawText_P(const char *s, int inverse) {
  */
 void GambyTextMode::clearLine () {
   byte j;
-  digitalWrite(RS, DATA);
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_RS, DATA);
+  digitalWrite(LCD_CS, LOW);
   for (j = currentColumn; j <= LAST_COL; j++) {
     clockOut(0);
   }
@@ -376,7 +375,7 @@ void GambyTextMode::clearLine () {
   sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), B00001111 & currentColumn); // & to mask out high bits
 
   //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
-  digitalWrite(CS, HIGH);
+  digitalWrite(LCD_CS, HIGH);
 }
 
 
@@ -513,7 +512,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
  */
 void GambyGraphicsMode::update() {
   int c, r;
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_CS, LOW);
   for (r = 0; r < NUM_PAGES; r++) {
     for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
       if (bitRead(dirtyBits[c], r)) {
@@ -539,8 +538,8 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
   int i;
   int x = c << 3;
   setPos(x, r); // setPos() should already be defined.
-  digitalWrite(RS, DATA);
-  digitalWrite(CS, LOW);
+  digitalWrite(LCD_RS, DATA);
+  digitalWrite(LCD_CS, LOW);
   for (i = 0; i < 8; i++) {
     // should already be in 'data' mode
     clockOut(offscreen[x + i][r]);

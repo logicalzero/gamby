@@ -16,7 +16,7 @@ Technical Notes
 LCD
 ---
 
-GAMBY is based around a 96x64 pixel monochrome display using an `S6B0755 <http://www.alldatasheet.com/datasheet-pdf/pdf/37866/SAMSUNG/S6B0755.html>`__ (or compatible) LCD controller, although this particular module does not support several of the controller's features (documented below).
+GAMBY is based around a 96x64 pixel monochrome display manufactured by Samsung for Motorola, internal part number UG09B63-FLGT4AA. It uses an `S6B0755 <http://www.alldatasheet.com/datasheet-pdf/pdf/37866/SAMSUNG/S6B0755.html>`__ (or compatible) LCD controller, although this particular module does not support several of the controller's features (documented below).
 
 The display is broken into eight horizontal 'pages', 8 pixels high and 96 pixels wide. Drawing to the screen is done by selecting a page and/or column and writing one or more bytes. The column automatically advances with each set of eight bits received, so the column/row select commands do not need to be sent when writing to a single page.
 

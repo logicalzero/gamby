@@ -1,12 +1,11 @@
 #ifndef Gamby_h
 #define Gamby_h
 
-#include "WProgram.h"
+#include "Arduino.h"
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <avr/io.h> 
 #include <inttypes.h>
-
 
 // ###########################################################################
 //
@@ -108,8 +107,6 @@
 #define PATTERN_CHECKER         0x33cc  // B0011001111001100
 #define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
 
-
-
 #define TAB_WIDTH      8
 
 // Word wrap modes
@@ -121,11 +118,6 @@
 #define SCROLL_NONE    0    // text goes off the bottom of the screen.
 #define SCROLL_NORMAL  1    // the entire display scrolls vertically when the bottom of the display is reached.
 #define SCROLL_WRAP    2    // Text resumes on the top line of the display after reaching the bottom.
-
-// Drawing modes
-#define NORMAL         0    // dark text, light background
-#define INVERSE        0xFF // light text, dark background
-
 
 // Inputs
 #define DPAD_UP      B10000000
