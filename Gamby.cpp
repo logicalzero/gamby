@@ -18,9 +18,6 @@ const int LCD_CS  =	13;    	// Chip select (inverted)
  * 
  ****************************************************************************/
 
-#ifndef Gamby
-#define Gamby
-
 byte GambyBase::inputs = 0;
 
 
@@ -435,8 +432,6 @@ GambyBlockMode::GambyBlockMode() {
  * 
  ****************************************************************************/
 
-#ifdef SKIP_THIS_STUFF
-
 unsigned int GambyGraphicsMode::drawPattern;
 unsigned int GambyGraphicsMode::drawMode;
 
@@ -446,6 +441,25 @@ unsigned int GambyGraphicsMode::drawMode;
  */
 GambyGraphicsMode::GambyGraphicsMode() {
   drawMode = 0;
+  clearScreen();
+}
+
+
+/**
+ *
+ *
+ */
+void GambyGraphicsMode::clearScreen() {
+  int r, c;
+  for (r = 0; r < NUM_PAGES; r++) {
+    for (c = 0; c < NUM_COLUMNS; c++) {
+      offscreen[c][r] = 0;
+    }
+  }
+  for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
+    dirtyBits[c] = 0xFF;
+  }
+  update();
 }
 
 
@@ -494,7 +508,6 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
       return;
   }
 
-  //boolean p = true;
   offscreen[x][r] = bitWrite(offscreen[x][r], b, p);
 
   // set "dirty bit" (flag as updated) if anything actually changed
@@ -639,13 +652,14 @@ void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, const prog_uchar
  * @param x1: End horizontal position
  * @param y1: End vertical position
  */
- void line(int x0, int y0, int x1, int y1) {
+void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // A variation of Bresenham's line algorithm, cribbed from Wikipedia
   // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
   
   // My addition: use simpler method if line is horizontal (y0==y1)
   if (y0 == y1) {
-    // make sure x0 is smaller than x1if (x0 > x1)
+    // make sure x0 is smaller than x1
+    if (x0 > x1)
       SWAP(x0, x1);
     drawHline(x0, x1, y0);
     return;
@@ -812,5 +826,3 @@ void GambyGraphicsMode::plot2lines(int cx, int cy, int x, int y) {
     setPixel((byte)i, (byte)y);
 }
 
-#endif
-#endif

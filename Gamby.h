@@ -196,7 +196,6 @@ class GambyBlockMode: public GambyBase {
 
 #define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3
 
-#ifdef SKIP_THIS_STUFF
 
 /**
  *
@@ -204,6 +203,7 @@ class GambyBlockMode: public GambyBase {
 class GambyGraphicsMode: public GambyBase {
  public:
   GambyGraphicsMode();
+  void clearScreen();
   void update();
   void setPixel(byte, byte);
   void setPixel(byte, byte, boolean);
@@ -231,6 +231,5 @@ class GambyGraphicsMode: public GambyBase {
 
 };
 
-#endif
 
 #endif
