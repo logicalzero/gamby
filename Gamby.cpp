@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "Gamby.h"
 
-#define SWAP(x,y) x0^=y0^=x0^=y0
+//#define SWAP(x,y) x0^=y0^=x0^=y0
 
 /****************************************************************************
  * Pins
@@ -441,7 +441,6 @@ unsigned int GambyGraphicsMode::drawMode;
  */
 GambyGraphicsMode::GambyGraphicsMode() {
   drawMode = 0;
-  clearScreen();
 }
 
 
@@ -459,7 +458,6 @@ void GambyGraphicsMode::clearScreen() {
   for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
     dirtyBits[c] = 0xFF;
   }
-  update();
 }
 
 
@@ -471,6 +469,10 @@ void GambyGraphicsMode::clearScreen() {
  * @param p: The pixel, either off (0/false) or on (1/true)
  */
 void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
+  // negative ints cast to byte are 256+val
+  if (x >= NUM_COLUMNS || y >= NUM_ROWS)
+      return;
+
   byte c = x >> 3;            // column of dirtyBits to mark changed (x/8)
   byte r = y >> 3;            // row (page) of display, row of dirtyBits (y/8)
   byte b = y & B00000111;     // Bit number (within page) to change; low three bits
@@ -494,13 +496,12 @@ void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
  * @param y: The pixel's vertical position
  */
 void GambyGraphicsMode::setPixel(byte x, byte y) {
-  byte c = x >> 3;            // column of dirtyBits to mark changed (x/8)
-  byte r = y >> 3;            // row (page) of display, row of dirtyBits (y/8)
-  byte b = y & B00000111;     // Bit number (within page) to change; low three bits
-  byte oldOffscreen = offscreen[x][r]; // keep old offscreen to avoid unnecessary update
+  // negative ints cast to byte are 256+val
+  if (x >= NUM_COLUMNS || y >= NUM_ROWS)
+      return;
 
   boolean p = getPatternPixel(x, y);
-  
+
   if (drawMode & DRAW_WHITE_TRANSPARENT || drawMode & DRAW_BLACK_TRANSPARENT) {
     if ((drawMode & DRAW_WHITE_TRANSPARENT) && !p)
       return;
@@ -508,7 +509,12 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
       return;
   }
 
-  offscreen[x][r] = bitWrite(offscreen[x][r], b, p);
+  byte c = x >> 3;            // column of dirtyBits to mark changed (x/8)
+  byte r = y >> 3;            // row (page) of display, row of dirtyBits (y/8)
+  byte b = y & B00000111;     // Bit number (within page) to change; low three bits
+  byte oldOffscreen = offscreen[x][r]; // keep old offscreen to avoid unnecessary update
+
+    offscreen[x][r] = bitWrite(offscreen[x][r], b, p);
 
   // set "dirty bit" (flag as updated) if anything actually changed
   if (oldOffscreen != offscreen[x][r]) {
@@ -516,6 +522,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
     //setBit(dirtyBits[c], r, true);
     dirtyBits[c] = dirtyBits[c] | (1 << r);
   }
+  
 }
 
 
@@ -655,20 +662,36 @@ void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, const prog_uchar
 void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // A variation of Bresenham's line algorithm, cribbed from Wikipedia
   // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-  
+
+#ifndef SWAP
+  int swap;
+#endif
+
   // My addition: use simpler method if line is horizontal (y0==y1)
   if (y0 == y1) {
     // make sure x0 is smaller than x1
-    if (x0 > x1)
+    if (x0 > x1) {
+
+#ifdef SWAP
       SWAP(x0, x1);
+#endif
+#ifndef SWAP
+    swap = x0;
+    x0 = x1;
+    x1 = swap;
+#endif
+    }
     drawHline(x0, x1, y0);
     return;
   }
   // My addition: use simpler method if line is vertical (x0==x1)
   if (x0 == x1) {
     // make sure y0 is smaller than y1
-    if (y0 > y1)
-      SWAP(y0, y1);
+    if (y0 > y1) {
+      swap = y0;
+      y0 = y1;
+      y1 = swap;
+    }
     for (byte i=y0; i<=y1; i++) 
       setPixel((byte)x0, i); 
     return;
@@ -677,12 +700,20 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // cribbed code starts here
   boolean steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep) {
-    SWAP(x0, y0);
-    SWAP(x1, y1);
+    swap = x0;
+    x0 = y0;
+    y0 = swap;
+    swap = x1;
+    x1 = y1;
+    y1 = swap;
   }
   if (x0 > x1) {
-    SWAP(x0, x1);
-    SWAP(y0, y1);
+    swap = x0;
+    x0 = x1;
+    x1 = swap;
+    swap = y0;
+    y0 = y1;
+    y1 = swap;
   }
 
   int deltax = x1 - x0;
