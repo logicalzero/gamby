@@ -738,6 +738,7 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   }
 } 
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -807,43 +808,61 @@ void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
 
 
 /**
- * plot4lines(): Not currently used; part of filled circle drawing.
+ * Draw a filled circle using the current drawPattern.
  *
+ * @param cx: The horizontal position of the disc's center
+ * @param xy: The vertical position of the disc's center
+ * @param radius: The disc's radius
  */
-void GambyGraphicsMode::plot4lines(int cx, int cy, int x, int y) {
-  int xplus = cx + x;
-  int yplus = cy + y;
-  int xminus = cx - x;
-  int yminus = cy - y;
+void GambyGraphicsMode::disc(int cx, int cy, int radius) {
+  int error = -radius;
+  int x = radius;
+  int y = 0;
 
-  line(x, yplus, xplus, yplus);
-  if (x != 0) 
-    line(x, yplus, xminus, yplus);
-  if (y != 0) 
-    line(x, yminus, xplus, yminus);
+  if (radius > 0) {
+    while (x >= y) {
+
+      // TODO: This can probably be optimized.
+      drawHline(cx-x, cx+x, cy+y);
+      drawHline(cx-x, cx+x, cy-y);
+      drawHline(cx-y, cx+y, cy+x);
+      drawHline(cx-y, cx+y, cy-x);
+
+      error += y;
+      ++y;
+      error += y;
+
+      // The following test may be implemented in assembly language in
+      // most machines by testing the carry flag after adding 'y' to
+      // the value of 'error' in the previous step, since 'error'
+      // nominally has a negative value.
+      if (error >= 0) {
+          --x;
+          error -= x;
+          error -= x;
+      }
+    }
+  }
 }
 
-///////////////////////////////////////////////////////////////////////////////////
 
 /**
- * plot2lines(): Not currently used; part of filled circle drawing.
- * 
+ * Draw an empty rectangle, using the current drawPattern.
+ *
  */
-void GambyGraphicsMode::plot2lines(int cx, int cy, int x, int y) {
-
-  // One pixel long 'line'
-  if (x == 0) {
-    setPixel(x, cy+y);
-    if (y != 0)
-      setPixel(x, cy-y);
-    return;
-  }
-
-  drawHline(cx-x, cx+x, cy+y);
-  // Mirror vertically if not the centerline.
-  if (y != 0) 
-    drawHline(cx-x, cx+x, cy-y);
+void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
+  // XXX: TO BE IMPLEMENTED.
 }
+
+
+/**
+ * Draw a filled rectangle, using the current drawPattern.
+ *
+ */
+void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
+  // XXX: TO BE IMPLEMENTED.
+}
+
 
 /**
  * drawHLine(): Private. Draw a simple horizontal line.

@@ -212,7 +212,10 @@ class GambyGraphicsMode: public GambyBase {
   void drawSprite(const prog_uchar *, const prog_uchar *, byte, byte);
 
   void line(int, int, int, int);
+  void box(int, int, int, int);
+  void rect(int, int, int, int);
   void circle(int, int, int);
+  void disc(int, int, int);
 
   static unsigned int drawPattern;
   static unsigned int drawMode;
@@ -223,8 +226,6 @@ class GambyGraphicsMode: public GambyBase {
  private:
   void updateBlock(byte, byte);
   void drawHline(int, int, int);
-  void plot2lines(int, int, int, int);
-  void plot4lines(int, int, int, int);
   void plot4points(int, int, int, int);
   void plot8points(int, int, int, int);
 
