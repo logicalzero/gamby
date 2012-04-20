@@ -16,49 +16,42 @@
 #define	DC_STEP_UP		B01100100	// 011001xx, xx select 3-5x boosting
 #define	REGULATOR_RESISTOR	B00100000	// 00100xxx (center)
 #define	SET_EVR_1		B10000001	// 2-byte instruction!
-//#define	SET_EVR_2	B00011100	// XXxxxxxx, xxxxxx = value, XX = don't care. (center)
+//#define SET_EVR_2		B00011100	// XXxxxxxx, xxxxxx = value, XX = don't care. (center)
 #define	SET_EVR_2		B00011011	// XXxxxxxx, xxxxxx = value, XX = don't care. (center)
 #define	SET_DUTY_1		B01001000 	// 2-byte instruction!
 #define	SET_DUTY_2		B01000000
 #define	SET_BIAS		B01010001	// 01010xxx, xxx = bias. Should be 001 for 1/5 bias
 #define	SET_OSC_ON		B10101011	// Starts internal oscillator
-#define	SHL_SELECT		B11000000	// 1100xXXX, x = COM scanning direction. 0 normal, 1 reverse. X = don't care.
-#define	ADC_SELECT		B10100000	// 1010000x
+#define	SHL_SELECT_REVERSE	B11001000	// 1100xXXX, x = COM scanning direction. 0 normal, 1 reverse. X = don't care.
+#define	ADC_SELECT		B10100001	// 1010000x
 
 #define	REGULATOR_RESISTOR_VAL	0x01		// range 0x00 ~ 0x03 // resistor value '001' @ 3.3V and 3x boost seems to work nicely
-//#define VOLUME_CONTROL_VAL	0x1C		// range 0x00 ~ 0x3F
-#define	VOLUME_CONTROL_VAL	0x0A		// range 0x00 ~ 0x3F
-#define	DISPLAY_INVERT_VAL	0x00		// range 0x00 ~ 0x01
+#define	VOLUME_CONTROL_VAL	0x0A		// range 0x00 ~ 0x3F; 0x1C was first try
 
 #define	ALL_BLACK		B10100100	// 1010010x, x=1 forces all pixels on. 'Entire Display ON' in datasheet.
-#define	DISPLAY_INVERT		B10100110	// 1010011x, x = invert. 0 normal, 1 inverse video.
-#define	SET_POWER_SAVE		B10101000	// 1010100x, x = power save level (0=standby, 1=sleep)
-#define	CLEAR_POWER_SAVE	B11100001
+#define	DISPLAY_INVERT_OFF     	B10100110	// 1010011x, x = invert. 0 normal, 1 inverse video.
+#define	DISPLAY_INVERT_ON	B10100111	// 1010011x, x = invert. 0 normal, 1 inverse video.
+#define	POWER_SAVE_STANDBY     	B10101000	// 1010100x, x = power save level (0=standby, 1=sleep)
+#define	POWER_SAVE_SLEEP    	B10101001	// 1010100x, x = power save level (0=standby, 1=sleep)
+#define	POWER_SAVE_CLEAR	B11100001
 #define	SOFT_RESET		B11100010	// Initialize the internal functions
 
-#define DISPLAY_POWER		B10101110	// B1010111x, 0=off, 1=on
-#define SET_N_LINE_INVERSION_1	B01001100	// 2 byte; 
+#define DISPLAY_POWER_OFF      	B10101110	// B1010111x, 0=off, 1=on
+#define DISPLAY_POWER_ON       	B10101111	// B1010111x, 0=off, 1=on
+#define SET_N_LINE_INVERSION_1	B01001100	// 2 byte; 2nd is XXXxxxxx; X = don't care. See datasheet pg. 43.
 #define CLEAR_N_LINE_INVERSION	B11100100
 #define SET_INITIAL_COM0_1	B01000100	// 2 byte, 2nd is 00XXxxxx; X = don't care
 #define SET_INITIAL_LINE_1	B01000000	// 2 byte, 2nd is 0Xxxxxxx
 
 #define	SET_PAGE_ADDR		B10110000	// 1011xxxx, xxxx = page addr.
-//#define SET_COLUMN_ADDR_1	B00010000	// 2-byte! 00010xxx, xxx = Y[6..4]
-#define	SET_COLUMN_ADDR_1	B00010010	// 2-byte! 00010xxx, xxx = Y[6..4] (32 added for offset to work inverted)
+#define	SET_COLUMN_ADDR_1	B00010010	// 2-byte! 00010xxx, xxx = Y[6..4] (32 (bit 5) added for offset to work inverted)
 #define	SET_COLUMN_ADDR_2	B00000000	// 0000xxxx, xxxx = Y[3..0]
 
-
 // Values to make code a little more readable
-#define POST_COMMAND_DELAY	100 //50		// microseconds; arbitrarily chosen
-#define BETWEEN_BIT_DELAY       5
+#define POST_COMMAND_DELAY	100 //50	// microseconds; arbitrarily chosen
+#define BETWEEN_BIT_DELAY	5
 
-#define SET_POWER_SAVE_STANDBY  SET_POWER_SAVE
-#define SET_POWER_SAVE_SLEEP    SET_POWER_SAVE | 1
-#define STANDBY			0		// Use w/ bitwise OR for power save mode
-#define SLEEP			1		// Use w/ bitwise OR for power save mode
 #define CLEAR			255		// Use w/ setNLineInversion()
-#define OFF			0		// use w/ bitwise OR for DISPLAY_POWER, ALL_BLACK, etc.
-#define ON			1		// use w/ bitwise OR for DISPLAY_POWER, ALL_BLACK, etc. 
 
 #define COMMAND                 0
 #define DATA                    1
@@ -74,8 +67,8 @@
 #define LAST_COL                NUM_COLUMNS - 1
 
 // Drawing modes
-#define NORMAL         0    // dark text, light background
-#define INVERSE        0xFF // light text, dark background
+#define NORMAL			0    // dark text, light background
+#define INVERSE			0xFF // light text, dark background
 
 
 // draw mode flags
@@ -107,27 +100,27 @@
 #define PATTERN_CHECKER         0x33cc  // B0011001111001100
 #define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
 
-#define TAB_WIDTH      8
+#define TAB_WIDTH	8
 
 // Word wrap modes
-#define WRAP_NONE      0    // text extends off beyond the right side of the screen. Fastest.
-#define WRAP_CHAR      1    // text wraps at the character that would extend beyond screen width.
-#define WRAP_WORD      2    // text breaks on whitespace. Slowest.
+#define WRAP_NONE	0    // text extends off beyond the right side of the screen. Fastest.
+#define WRAP_CHAR	1    // text wraps at the character that would extend beyond screen width.
+#define WRAP_WORD	2    // text breaks on whitespace. Slowest.
 
 // Screen scrolling modes. NORMAL is marginally slower than the other two.
-#define SCROLL_NONE    0    // text goes off the bottom of the screen.
-#define SCROLL_NORMAL  1    // the entire display scrolls vertically when the bottom of the display is reached.
-#define SCROLL_WRAP    2    // Text resumes on the top line of the display after reaching the bottom.
+#define SCROLL_NONE	0    // text goes off the bottom of the screen.
+#define SCROLL_NORMAL	1    // the entire display scrolls vertically when the bottom of the display is reached.
+#define SCROLL_WRAP	2    // Text resumes on the top line of the display after reaching the bottom.
 
 // Inputs
-#define DPAD_UP      B10000000
-#define DPAD_LEFT    B01000000
-#define DPAD_RIGHT   B00100000
-#define DPAD_DOWN    B00010000
-#define BUTTON_1     B00001000
-#define BUTTON_2     B00000100
-#define BUTTON_3     B00000010
-#define BUTTON_4     B00000001
+#define DPAD_UP		B10000000
+#define DPAD_LEFT	B01000000
+#define DPAD_RIGHT	B00100000
+#define DPAD_DOWN	B00010000
+#define BUTTON_1	B00001000
+#define BUTTON_2	B00000100
+#define BUTTON_3	B00000010
+#define BUTTON_4	B00000001
 
 
 // ###########################################################################
@@ -149,6 +142,7 @@ class GambyBase {
   void setPos(byte, byte);
 
   static byte inputs;
+  static unsigned int drawMode;
 
  private:
   static unsigned int toneTimeRemaining;
@@ -165,9 +159,10 @@ class GambyTextMode: public GambyBase {
   void setColumn(byte);
   byte getCharWidth(byte);
   byte getCharBaseline(byte);
-  void drawChar(char, int);
-  void drawText(char *, int);
-  void drawText_P(const char *, int);
+  void drawChar(char);
+  void drawText(char *);
+  void drawText_P(const char *);
+  void drawIcon(const prog_uchar *);
   void clearLine();
   void clearScreen();
   void newline();
@@ -218,7 +213,6 @@ class GambyGraphicsMode: public GambyBase {
   void disc(int, int, int);
 
   static unsigned int drawPattern;
-  static unsigned int drawMode;
 
   byte offscreen[NUM_COLUMNS][NUM_PAGES];
   byte dirtyBits[NUM_DIRTY_COLUMNS];

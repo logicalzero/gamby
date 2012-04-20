@@ -1,7 +1,22 @@
 #include "Arduino.h"
 #include "Gamby.h"
 
-//#define SWAP(x,y) x0^=y0^=x0^=y0
+// TODO: GambyBase::readInputs() totally fails to work. The same code in a
+//    sketch does. Weird.
+
+// TODO: Remove all digitalWrite() calls, replace with port manipulation.
+// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops
+// TODO: Replace all delay() calls with something non-terrible (inline NOPs?)
+
+// TODO: Refactor GambyTextMode::drawChar() so that the drawMode byte is
+//    applied to each column, not per-bit. This would allow underline,
+//    strike-through, etc.
+// TODO: Change name of GambyBase::clockOut() to something better. Possibly
+//    writeByte(). Users may want to use this.
+
+// TODO: Consider doing something to support high-bit ASCII in a reasonable
+//    way. Possibly do something to skip over symbols, just use letters.
+
 
 /****************************************************************************
  * Pins
@@ -13,40 +28,66 @@ const int LCD_RS  =	11;	// Register Select (LOW = command, HIGH = data)
 const int LCD_RES =	12; 	// Reset (inverted)
 const int LCD_CS  =	13;    	// Chip select (inverted)
 
+const byte BIT_SID = 	B00000001;
+const byte BIT_SCK =	B00000100;
+const byte BIT_RS  =	B00001000;
+const byte BIT_RES =	B00010000;
+const byte BIT_CS  =	B00100000;
+
+/****************************************************************************
+ * Macros
+ ****************************************************************************/
+
+/**
+ * Swap: Used in line drawing, assumes a variable named 'swap' has been
+ * declared, and it is a type compatible with both 'x' and 'y'.
+ * Just makes the code a little cleaner-looking.
+ */
+#define SWAP(x,y) swap=x; x=y; y=swap
 
 /****************************************************************************
  * 
  ****************************************************************************/
 
+
 byte GambyBase::inputs = 0;
+unsigned int GambyBase::drawMode = NORMAL;
 
 
 /**
- * init(): Initialize the GAMBY LCD.
+ * Initialize the GAMBY LCD.
  *
  */
 void GambyBase::init() {
   // Direct port manipulation to set output on pins 8-12.  
-//  DDRB = DDRB | B00011111;
-  
+  DDRB = DDRB | B00111101;
+
+  /*  
   pinMode(LCD_SID, OUTPUT);
   pinMode(LCD_SCK, OUTPUT);
   pinMode(LCD_RS,  OUTPUT);
   pinMode(LCD_RES, OUTPUT);
   pinMode(LCD_CS,  OUTPUT);
+  */
 
+  PORTB = PORTB & B11000000;
+  PORTB = PORTB | BIT_RES | BIT_RS;
+  PORTB = PORTB & ~BIT_RS;
+
+  /*  
   digitalWrite(LCD_RES, LOW);
   digitalWrite(LCD_CS, LOW);
   digitalWrite(LCD_RES, HIGH);
   digitalWrite(LCD_RS, HIGH);
   digitalWrite(LCD_RS, LOW);
-  
+  */  
+
   sendCommand(SOFT_RESET);
   sendCommand(SET_DUTY_1, SET_DUTY_2);
   sendCommand(SET_BIAS);
 
-  sendCommand(SHL_SELECT | B00001000); //1100xXXX
-  sendCommand(ADC_SELECT | 0x01);
+  sendCommand(SHL_SELECT_REVERSE); //1100xXXX
+  sendCommand(ADC_SELECT);
   
   sendCommand(SET_OSC_ON);
   sendCommand(DC_STEP_UP);
@@ -54,75 +95,93 @@ void GambyBase::init() {
   sendCommand(SET_EVR_1, SET_EVR_2 | VOLUME_CONTROL_VAL);
   sendCommand(SET_BIAS);
   sendCommand(POWER_CONTROL);
-  sendCommand(CLEAR_POWER_SAVE);
-  sendCommand(DISPLAY_INVERT | DISPLAY_INVERT_VAL);
+  sendCommand(POWER_SAVE_CLEAR);
+  sendCommand(DISPLAY_INVERT_OFF);
   
-  sendCommand(DISPLAY_POWER | ON);
+  sendCommand(DISPLAY_POWER_ON);
 
-  digitalWrite(LCD_RS, DATA);
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, DATA); // HIGH
+  //  digitalWrite(LCD_CS, LOW);
+  PORTB = (PORTB & ~BIT_CS) | BIT_SID;
 
   // Set up inputs
   inputs = 0;
-  digitalWrite(18, LOW);
-  digitalWrite(19, LOW);
+  //  digitalWrite(18, LOW);
+  //  digitalWrite(19, LOW);
 
   // Set Pins 2-8 as input, activate pull-up resistors   
   DDRD = DDRD & B00000011;
-  PORTD = PORTD | B11111100;
+  PORTD = PORTD & B11111100;
 }
 
 
 /**
- * clockOut(): Send a byte to the LCD.
+ * Send a byte to the LCD.
  *
  * @param data: The byte to send
  */
 void GambyBase::clockOut(byte data) {
-  
   byte i;
-  digitalWrite(LCD_SID, HIGH);
-  digitalWrite(LCD_SCK, HIGH);
+
+  //  digitalWrite(LCD_SID, HIGH);
+  //  digitalWrite(LCD_SCK, HIGH);
+  PORTB = PORTB | BIT_SID | BIT_SCK;
     
   for (i=0; i<8; i++) {
-    digitalWrite(LCD_SID, (data & B10000000));	// clock out MSBit of data
-    digitalWrite(LCD_SCK, LOW);
-    digitalWrite(LCD_SCK, HIGH);
+    //    digitalWrite(LCD_SID, (data & B10000000));	// clock out MSBit of data
+    //    digitalWrite(LCD_SCK, LOW);
+    //    digitalWrite(LCD_SCK, HIGH);
+    if (data & B10000000)
+      PORTB = (PORTB & ~BIT_SCK) | BIT_SID;
+    else
+      PORTB = PORTB & ~(BIT_SCK | BIT_SID);
+    PORTB = PORTB | BIT_SCK;
     data = data << 0x01;
   }
 
   // Clock and data pins idle high
-  digitalWrite(LCD_SID, HIGH);
+  //  digitalWrite(LCD_SID, HIGH);
+  PORTB = PORTB | BIT_SID;
 }
 
 
 /**
- * clockOutBit(): Send a single bit to the LCD.
+ * Send a single bit to the LCD.
  * 
  * @param b: The bit to send
  */
 void GambyBase::clockOutBit(boolean b) {
-  digitalWrite(LCD_SID, HIGH);  // necessary?
-  digitalWrite(LCD_SCK, HIGH);
-  digitalWrite(LCD_SID, b);
-  digitalWrite(LCD_SCK, LOW);
-  digitalWrite(LCD_SCK, HIGH);
-    
+  //  digitalWrite(LCD_SID, HIGH);  // necessary?
+  //  digitalWrite(LCD_SCK, HIGH);
+  //  digitalWrite(LCD_SID, b);
+  //  digitalWrite(LCD_SCK, LOW);
+  //  digitalWrite(LCD_SCK, HIGH);
+
+  PORTB = PORTB | BIT_SID | BIT_SCK;
+  if (b)
+    PORTB = (PORTB & ~BIT_SCK) | BIT_SID;
+  else
+    PORTB = PORTB & ~(BIT_SCK | BIT_SID);
+  PORTB = PORTB | BIT_SCK;
+
   // Clock and data pins idle high
-  digitalWrite(LCD_SID, HIGH);
+  //  digitalWrite(LCD_SID, HIGH);
+  PORTB = PORTB | BIT_SID;
 }
 
 
 /**
- * sendCommand(): Send a single-byte command to the LCD.
+ * Send a single-byte command to the LCD.
  *
  * @param command: The command to send, i.e. one of the constants,
  */
 void GambyBase::sendCommand (byte command) {
-  digitalWrite(LCD_RS, COMMAND);
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, COMMAND);
+  //  digitalWrite(LCD_CS, LOW);
+  PORTB = PORTB & ~(BIT_RS | BIT_CS);
   clockOut(command);
-  digitalWrite(LCD_CS, HIGH);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB |= BIT_CS;
 }
 
 
@@ -133,17 +192,19 @@ void GambyBase::sendCommand (byte command) {
  * @param b2: The second byte
  */
 void GambyBase::sendCommand(byte b1, byte b2) {
-  digitalWrite(LCD_RS, COMMAND);
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, COMMAND);
+  //  digitalWrite(LCD_CS, LOW);
+  PORTB = PORTB & ~(BIT_RS | BIT_CS);
   clockOut(b1);
   clockOut(b2);
-  digitalWrite(LCD_CS, HIGH);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB |= BIT_CS;
 }
 
 
 /**
- * clearDisplay(): Erase the screen contents and place the cursor in the first
- * column of the first row.
+ * Erase the screen contents and place the cursor in the first column of the
+ * first row.
  *
  */
 void GambyBase::clearDisplay () {
@@ -151,38 +212,49 @@ void GambyBase::clearDisplay () {
   for (i=0; i < NUM_PAGES; i++) {
     sendCommand(SET_PAGE_ADDR | i);
     sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
-    digitalWrite(LCD_RS, DATA);
-    digitalWrite(LCD_CS, LOW);
+    //    digitalWrite(LCD_RS, DATA);
+    //    digitalWrite(LCD_CS, LOW);
+    PORTB = (PORTB | BIT_RS) & ~BIT_CS;
     for (j = 0; j < NUM_COLUMNS; j++) {
       clockOut(0);
     }
-    digitalWrite(LCD_CS, HIGH);
+    //    digitalWrite(LCD_CS, HIGH);
+    PORTB = PORTB | BIT_CS;
   }
 }
 
 
 /**
- * readInputs(): Read the state of the DPad and buttons, then set the object's
- * `inputs` variable.
+ * Read the state of the DPad and buttons, then set the object's `inputs` 
+ * variable.
  *
  */
 void GambyBase::readInputs() {
   // Digital pin 19 (A5) INPUT, digital pin 18 (A4) OUTPUT
   DDRC = (DDRC & B11001111) | B00010000;
-  delay(1); // Not waiting gets inconsistent results. TODO: Determine how long is enough.
+  //  delay(5); // Not waiting gets inconsistent results. TODO: Determine how long is enough.
+  asm("nop");
+  asm("nop");
+  asm("nop");
+  asm("nop");
+  asm("nop");
   inputs = PIND >> 4;
   
   // Digital pin 18 (A4) INPUT, digital pin 19 (A5) OUTPUT
   DDRC = (DDRC & B11001111) | B00100000;  
-  delay(1);
+  //  delay(5);
+  asm("nop");
+  asm("nop");
+  asm("nop");
+  asm("nop");
+  asm("nop");
   
   inputs = ~((PIND &  B11110000) | inputs);
 }
 
 
 /**
- * setPos(): Set the column and page location at which the next data will be
- * displayed.
+ * Set the column and page location at which the next data will be displayed.
  *
  * @param col:
  * @param line:
@@ -213,7 +285,7 @@ GambyTextMode::GambyTextMode() {
 
 
 /**
- * scroll(): 
+ * Scroll the screen up (or down) by one or more lines. 
  *
  * @param s: The number of lines to scroll, positive or negative.
  */
@@ -230,7 +302,7 @@ void GambyTextMode::scroll(int s) {
 
 
 /**
- * setColumn(): Set the horizontal position of the cursor.
+ * Set the horizontal position of the cursor.
  *
  * @param column:
  */
@@ -241,7 +313,7 @@ void GambyTextMode::setColumn (byte column) {
 
 
 /**
- * setPos(): Set the cursor's column and line (relative to current scrolling).
+ * Set the cursor's column and line (relative to current scrolling).
  *
  * @param col: The column (0 to 95)
  * @param line: The 8 pixel line (0 to 7)
@@ -258,7 +330,7 @@ void GambyTextMode::setPos(byte col, byte line) {
 
 
 /**
- * getCharWidth(): Retrieves the width of a given character.
+ * Retrieves the width of a given character.
  *
  * @param idx:The actual index into font data (ASCII value - 32)
  * @return: The character's with in pixels
@@ -269,7 +341,7 @@ byte GambyTextMode::getCharWidth(byte idx) {
 
 
 /**
- * getCharBaseline(): Get the vertical offset of a character.
+ * Get the vertical offset of a character.
  *
  * @param idx: The actual index into font data (ASCII value - 32)
  * @return: The character's vertical offset
@@ -280,12 +352,35 @@ byte GambyTextMode::getCharBaseline(byte idx) {
 
 
 /**
- * drawChar(): Draw a character at the current screen position.
+ * Draw a character at the current screen position.
  *
  * @param c: is the ASCII character to draw.
- * @param inverse: is either NORMAL or INVERSE.
  */
-void GambyTextMode::drawChar(char c, int inverse) {
+void GambyTextMode::drawChar(char c) {
+
+  // Newline character. Bail.
+  if (c == '\n') {
+    newline();
+    return;
+  }
+
+  //  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, DATA);
+  PORTB = (PORTB & ~BIT_CS) | BIT_RS;
+
+  if (c == '\t') {
+    if (currentColumn + 8 > NUM_COLUMNS) {
+      newline();
+      return;
+    }
+
+    // else, scootch in.
+    for (byte t = (((currentColumn + 1) & B11111000) + 8) - currentColumn; t > 0; t--)
+      clockOut(drawMode);
+    currentColumn = ((currentColumn + 1) & B11111000) + 8;
+    return;
+  }
+
   byte idx = byte(c) - 32;  // index into font data array
   long d = (long)pgm_read_dword(&font[idx]);  // character data
   byte w = (byte)(d & 0x0F);  // character width
@@ -293,78 +388,69 @@ void GambyTextMode::drawChar(char c, int inverse) {
 
   byte i,j,k;
 
-  if (w + currentColumn > NUM_COLUMNS) {
+  currentColumn += w + 1;
+  if (currentColumn > NUM_COLUMNS) {
     newline();
   }
-  digitalWrite(LCD_CS, LOW);
-  digitalWrite(LCD_RS, DATA);
-  for (i = 0; i < w; i++) {
+
+  //  for (i = 0; i < w; i++) {
+  for (; w > 0; --w) {
     // fill to baseline
     for (k = 0; k < (2 - b); k++)
-      clockOutBit(inverse);
+      clockOutBit(drawMode);
 
     // draw column of font bitmap
     for (j = 0; j < 5; j++) {
-      clockOutBit(((d >> 31) ^ inverse) & 1);	// clock out MSBit of data
+      clockOutBit(((d >> 31) ^ drawMode) & 1);	// clock out MSBit of data
       d = d << 0x01;
     }
 
     // fill out top of character.
     for (k = 0; k<= b; k++)
-      clockOutBit(inverse);    
+      clockOutBit(drawMode);
   }
   // Draw gap ('kerning') between letters, 1px wide.
-  clockOut(inverse);
-  digitalWrite(LCD_CS, HIGH);
+  clockOut(drawMode);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB = PORTB | BIT_CS;
 
-  currentColumn += w + 1;
 }
 
 
 /**
- * drawText(): Write a string to the display.
+ * Write a string to the display.
  *
  * @param s: the string to draw.
- * @param inverse: either NORMAL or INVERSE (0x00 or 0xFF).
  */
-void GambyTextMode::drawText (char* s, int inverse) {
-  int c = 0;
-  while (s[c] != '\0') {
-    if (s[c] == '\n')
-      newline();
-    else
-      drawChar(s[c], inverse);
-    c++;
-  }
+void GambyTextMode::drawText (char* s) {
+  for (int c=0; s[c] != '\0'; c++)
+    drawChar(s[c]);
 }
 
 
 /** 
- * drawText_P(): Write a PROGMEM string to the display.
+ * Write a PROGMEM string to the display.
  *
  * @param s: the PROGMEM address of the string to draw.
- * @param inverse: either NORMAL or INVERSE (0x00 or 0xFF).
  */
-void GambyTextMode::drawText_P(const char *s, int inverse) {
-  char c = pgm_read_byte(s);
+void GambyTextMode::drawText_P(const char *s) {
+  char c = pgm_read_byte_near(s);
   while (c != '\0') {
-    if (c == '\n')
-      newline();
-    else
-      drawChar(c, inverse);
-    c = pgm_read_byte(++s);
+    drawChar(c);
+    c = pgm_read_byte_near(++s);
   }
 }
 
 
 /**
- * clearLine(): Clears the current line right of the current column.
+ * Clears the current line right of the current column.
  *
  */
 void GambyTextMode::clearLine () {
   byte j;
-  digitalWrite(LCD_RS, DATA);
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, DATA);
+  //  digitalWrite(LCD_CS, LOW);
+  PORTB = (PORTB & ~BIT_CS) | BIT_RS;
   for (j = currentColumn; j <= LAST_COL; j++) {
     clockOut(0);
   }
@@ -372,12 +458,13 @@ void GambyTextMode::clearLine () {
   sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), B00001111 & currentColumn); // & to mask out high bits
 
   //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
-  digitalWrite(LCD_CS, HIGH);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB = PORTB | BIT_CS;
 }
 
 
 /**
- * clearScreen(): Text-specific clear screen; resets scrolling offset.
+ * Text-specific clear screen; resets scrolling offset.
  *
  */
 void GambyTextMode::clearScreen() {
@@ -416,6 +503,21 @@ void GambyTextMode::newline() {
 }
 
 
+/** 
+ * Draw an 8px icon at the current position on screen.
+ *
+ * @param idx: 
+ */
+void GambyTextMode::drawIcon(const prog_uchar *idx) {
+  // XXX: TO BE IMPLEMENTED.
+  PORTB = (PORTB & ~BIT_CS) | BIT_RS;
+  byte w = pgm_read_byte_near(idx);
+  currentColumn += w;
+  for (; w > 0; w--) {
+    clockOut(pgm_read_byte_near(++idx));
+  }
+}
+
 /****************************************************************************
  * 
  ****************************************************************************/
@@ -433,7 +535,6 @@ GambyBlockMode::GambyBlockMode() {
  ****************************************************************************/
 
 unsigned int GambyGraphicsMode::drawPattern;
-unsigned int GambyGraphicsMode::drawMode;
 
 /**
  * Constructor.
@@ -478,6 +579,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
   byte b = y & B00000111;     // Bit number (within page) to change; low three bits
   byte oldOffscreen = offscreen[x][r]; // keep old offscreen to avoid unnecessary update
 
+  // TODO: Replace bitWrite with bitwise ops
   offscreen[x][r] = bitWrite(offscreen[x][r], b, !p);
 
   // set "dirty bit" (flag as updated) if anything actually changed
@@ -532,7 +634,8 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
  */
 void GambyGraphicsMode::update() {
   int c, r;
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_CS, LOW);
+  PORTB = PORTB & ~BIT_CS;
   for (r = 0; r < NUM_PAGES; r++) {
     for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
       if (bitRead(dirtyBits[c], r)) {
@@ -558,8 +661,9 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
   int i;
   int x = c << 3;
   setPos(x, r); // setPos() should already be defined.
-  digitalWrite(LCD_RS, DATA);
-  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_CS, LOW);
+  //  digitalWrite(LCD_RS, DATA);
+  PORTB = (PORTB & ~BIT_CS) | BIT_RS;
   for (i = 0; i < 8; i++) {
     // should already be in 'data' mode
     clockOut(offscreen[x + i][r]);
@@ -663,23 +767,14 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // A variation of Bresenham's line algorithm, cribbed from Wikipedia
   // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
 
-#ifndef SWAP
+  // The SWAP macro uses this variable. Don't remove/rename.
   int swap;
-#endif
 
   // My addition: use simpler method if line is horizontal (y0==y1)
   if (y0 == y1) {
     // make sure x0 is smaller than x1
     if (x0 > x1) {
-
-#ifdef SWAP
-      SWAP(x0, x1);
-#endif
-#ifndef SWAP
-    swap = x0;
-    x0 = x1;
-    x1 = swap;
-#endif
+      SWAP(x0,x1);
     }
     drawHline(x0, x1, y0);
     return;
@@ -700,20 +795,12 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // cribbed code starts here
   boolean steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep) {
-    swap = x0;
-    x0 = y0;
-    y0 = swap;
-    swap = x1;
-    x1 = y1;
-    y1 = swap;
+    SWAP(x0,y0);
+    SWAP(x1,y1);
   }
   if (x0 > x1) {
-    swap = x0;
-    x0 = x1;
-    x1 = swap;
-    swap = y0;
-    y0 = y1;
-    y1 = swap;
+    SWAP(x0,x1);
+    SWAP(y0,y1);
   }
 
   int deltax = x1 - x0;
