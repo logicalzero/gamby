@@ -185,6 +185,10 @@ class GambyTextMode: public GambyBase {
 class GambyBlockMode: public GambyBase {
  public:
   GambyBlockMode();
+  void setBlock(byte, byte, byte);
+  byte getBlock(byte, byte);
+
+  const prog_uint16_t* palette;
 
  private:
 };

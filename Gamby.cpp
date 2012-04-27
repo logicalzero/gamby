@@ -1,16 +1,12 @@
 #include "Arduino.h"
 #include "Gamby.h"
 
-// TODO: GambyBase::readInputs() totally fails to work. The same code in a
-//    sketch does. Weird.
-
-// TODO: Remove all digitalWrite() calls, replace with port manipulation.
-// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops
-// TODO: Replace all delay() calls with something non-terrible (inline NOPs?)
+// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops.
+//    But only after everything works.
 
 // TODO: Refactor GambyTextMode::drawChar() so that the drawMode byte is
 //    applied to each column, not per-bit. This would allow underline,
-//    strike-through, etc.
+//    strike-through, etc. Also eliminates need for clockOutBit().
 // TODO: Change name of GambyBase::clockOut() to something better. Possibly
 //    writeByte(). Users may want to use this.
 
@@ -68,19 +64,16 @@ void GambyBase::init() {
   pinMode(LCD_RS,  OUTPUT);
   pinMode(LCD_RES, OUTPUT);
   pinMode(LCD_CS,  OUTPUT);
-  */
-
-  PORTB = PORTB & B11000000;
-  PORTB = PORTB | BIT_RES | BIT_RS;
-  PORTB = PORTB & ~BIT_RS;
-
-  /*  
   digitalWrite(LCD_RES, LOW);
   digitalWrite(LCD_CS, LOW);
   digitalWrite(LCD_RES, HIGH);
   digitalWrite(LCD_RS, HIGH);
   digitalWrite(LCD_RS, LOW);
-  */  
+  */
+
+  PORTB = PORTB & B11000000;
+  PORTB = PORTB | BIT_RES | BIT_RS;
+  PORTB = PORTB & ~BIT_RS;
 
   sendCommand(SOFT_RESET);
   sendCommand(SET_DUTY_1, SET_DUTY_2);
@@ -108,10 +101,14 @@ void GambyBase::init() {
   inputs = 0;
   //  digitalWrite(18, LOW);
   //  digitalWrite(19, LOW);
+  PORTC = PORTC & B11001111;
 
   // Set Pins 2-8 as input, activate pull-up resistors   
   DDRD = DDRD & B00000011;
-  PORTD = PORTD & B11111100;
+  PORTD = PORTD | B11111100;
+
+  clearDisplay();
+  setPos(0,0);
 }
 
 
@@ -232,23 +229,20 @@ void GambyBase::clearDisplay () {
 void GambyBase::readInputs() {
   // Digital pin 19 (A5) INPUT, digital pin 18 (A4) OUTPUT
   DDRC = (DDRC & B11001111) | B00010000;
-  //  delay(5); // Not waiting gets inconsistent results. TODO: Determine how long is enough.
-  asm("nop");
-  asm("nop");
-  asm("nop");
-  asm("nop");
-  asm("nop");
+  //  delay(5); // Not waiting gets inconsistent results. 
+  // TODO: Determine how long is enough. This seems to be okay, still gets
+  // weird sometimes.
+  asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
+  asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
+  asm("nop \n nop \n nop \n nop");
   inputs = PIND >> 4;
   
   // Digital pin 18 (A4) INPUT, digital pin 19 (A5) OUTPUT
   DDRC = (DDRC & B11001111) | B00100000;  
   //  delay(5);
-  asm("nop");
-  asm("nop");
-  asm("nop");
-  asm("nop");
-  asm("nop");
-  
+  asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
+  asm("nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop \n nop");
+  asm("nop \n nop \n nop \n nop");
   inputs = ~((PIND &  B11110000) | inputs);
 }
 
@@ -275,6 +269,7 @@ void GambyBase::setPos(byte col, byte line) {
  *
  */
 GambyTextMode::GambyTextMode() {
+  init();
   currentLine = 0;
   currentColumn = 0;
   offset = 0;
@@ -476,7 +471,8 @@ void GambyTextMode::clearScreen() {
 
 
 /**
- * newline():
+ * Move the cursor to the first column of the next line, scrolling the
+ * display if necessary.
  * 
  */
 void GambyTextMode::newline() {
@@ -504,12 +500,11 @@ void GambyTextMode::newline() {
 
 
 /** 
- * Draw an 8px icon at the current position on screen.
+ * Draw an 8px high icon at the current position on screen.
  *
  * @param idx: 
  */
 void GambyTextMode::drawIcon(const prog_uchar *idx) {
-  // XXX: TO BE IMPLEMENTED.
   PORTB = (PORTB & ~BIT_CS) | BIT_RS;
   byte w = pgm_read_byte_near(idx);
   currentColumn += w;
@@ -527,6 +522,31 @@ void GambyTextMode::drawIcon(const prog_uchar *idx) {
  *
  */
 GambyBlockMode::GambyBlockMode() {
+  init();
+}
+
+
+/**
+ * Draw a block at a given location.
+ *
+ * @param x: The horizontal position. 
+ * @param y: The vertical position.
+ * @param idx: The index of the block to draw.
+ */
+void GambyBlockMode::setBlock(byte x, byte y, byte idx) {
+  // TODO: Implement this!
+}
+
+
+/**
+ * Retrieve the index of the block at the given location.
+ *
+ * @param x: The horizontal position. 
+ * @param y: The vertical position.
+ * @return: The index of the block at the given coordinates.
+ */
+byte GambyBlockMode::getBlock(byte x, byte y) {
+  // TODO: Implement this!
 }
 
 
@@ -541,6 +561,7 @@ unsigned int GambyGraphicsMode::drawPattern;
  *
  */
 GambyGraphicsMode::GambyGraphicsMode() {
+  init();
   drawMode = 0;
 }
 
@@ -563,7 +584,7 @@ void GambyGraphicsMode::clearScreen() {
 
 
 /**
- * setPixel(): Set a pixel explicitly on or off.
+ * Set a pixel explicitly on or off.
  *
  * @param x: The pixel's horizontal position
  * @param y: The pixel's vertical position
@@ -592,7 +613,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y, boolean p) {
 
 
 /**
- * setPixel(): Set a pixel using the current `drawPattern`.
+ * Set a pixel using the current `drawPattern`.
  * 
  * @param x: The pixel's horizontal position
  * @param y: The pixel's vertical position
@@ -629,7 +650,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
 
 
 /**
- * update(): Redraws the changed portions of the LCD.
+ * Redraws the changed portions of the LCD.
  *
  */
 void GambyGraphicsMode::update() {
@@ -651,7 +672,7 @@ void GambyGraphicsMode::update() {
 
 
 /**
- * updateblock(): Redraws an 8x8 block from the offscreen image.
+ * Redraws an 8x8 block from the offscreen image.
  * TODO: Roll into update()?
  *
  * @param c: Column of screen block to update (width / 8)
@@ -673,8 +694,8 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
 
 
 /**
- * getPatternPixel():  Get pixel from a 4x4 grid (a 16b int) for the given
- * screen coordinates. Uses the drawPattern variable.
+ * Get pixel from a 4x4 grid (a 16b int) for the given screen coordinates. 
+ * Uses the drawPattern variable.
  *
  * @param x: Horizontal position on screen.
  * @param y: Vertical position on screen.
@@ -756,7 +777,7 @@ void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, const prog_uchar
 
 
 /**
- * line(): Draw a single-pixel-wide line between two points. 
+ * Draw a single-pixel-wide line between two points. 
  * 
  * @param x0: Start horizontal position
  * @param y0: Start vertical postition
@@ -783,9 +804,7 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   if (x0 == x1) {
     // make sure y0 is smaller than y1
     if (y0 > y1) {
-      swap = y0;
-      y0 = y1;
-      y1 = swap;
+      SWAP(y0,y1);
     }
     for (byte i=y0; i<=y1; i++) 
       setPixel((byte)x0, i); 
@@ -829,7 +848,7 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
 ///////////////////////////////////////////////////////////////////////////////////
 
 /**
- * circle(): Draw a circle centered at the given coordinates.
+ * Draw a circle centered at the given coordinates.
  *
  * @param cx: The horizontal posiiton of the circle's center
  * @param cy: The vertical position of the circle's center
@@ -880,7 +899,7 @@ void GambyGraphicsMode::plot8points(int cx, int cy, int x, int y) {
  
 
 /**
- * plot4points(): Draws four points. Used by the circle drawing.
+ * Draws four points. Used by the circle drawing.
  * The 4th point can be omitted if the radius is known to be nonzero.
  */
 void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
@@ -952,7 +971,7 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
 
 
 /**
- * drawHLine(): Private. Draw a simple horizontal line.
+ * Private. Draw a simple horizontal line.
  *
  * @param x1: first X coordinate, must be lower than x2
  * @param x2: second X coordinate, must be greater than x1
