@@ -1,4 +1,5 @@
 // Fill patterns (4x4 pixel grids as 16b ints)
+
 #define PATTERN_WHITE           0x0000
 #define PATTERN_BLACK           0xFFFF
 #define PATTERN_GRAY            0x5a5a  // B0101101001011010

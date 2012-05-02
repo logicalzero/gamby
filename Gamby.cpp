@@ -1,9 +1,18 @@
 #include "Arduino.h"
+
 #include "Gamby.h"
+#include "lcd.h"
+#include "patterns.h"
 
-// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops.
-//    But only after everything works.
+// Major to-do items:
+// ~~~~~~~~~~~~~~~~~~
+// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops --
+//    but only after everything works.
+// TODO: Get rid of weird and unnecessary typecasting throughout the code, 
+//    which was originally put in during testing and forgotten about.
 
+// Other items:
+// ~~~~~~~~~~~~
 // TODO: Refactor GambyTextMode::drawChar() so that the drawMode byte is
 //    applied to each column, not per-bit. This would allow underline,
 //    strike-through, etc. Also eliminates need for clockOutBit().
@@ -346,6 +355,39 @@ byte GambyTextMode::getCharBaseline(byte idx) {
 }
 
 
+/** Get the width (in pixels) of a string.
+ *
+ * @param s: the string to measure.
+ */
+int GambyTextMode::getTextWidth(char* s) {
+  int width = 0;
+  for (int i=0; s[i] != '\0'; i++) {
+    char c = s[i]-32;
+    if (c >= 0)
+      width += getCharWidth(c) + 1; // width + gutter
+  }
+  // No gutter after last character, so subtract it.
+  return width-1;
+}
+
+
+/** Get the width (in pixels) of a string in PROGMEM.
+ *
+ * @param s: the PROGMEM address of the string to measure.
+ */
+int GambyTextMode::getTextWidth_P(const char *s) {
+  int width = 0;
+  char c = pgm_read_byte_near(s);
+  while (c != '\0') {
+    c -= 32;
+    if (c > 0)
+      width += getCharWidth(c) + 1;
+    c = pgm_read_byte_near(++s);
+  }
+  return width-1;
+}
+
+
 /**
  * Draw a character at the current screen position.
  *
@@ -637,12 +679,11 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
   byte b = y & B00000111;     // Bit number (within page) to change; low three bits
   byte oldOffscreen = offscreen[x][r]; // keep old offscreen to avoid unnecessary update
 
-    offscreen[x][r] = bitWrite(offscreen[x][r], b, p);
+  offscreen[x][r] = bitWrite(offscreen[x][r], b, p);
+  //  offscreen[x][r] = (offscreen[x][r] & ~(1 << b)) | (p << b);
 
   // set "dirty bit" (flag as updated) if anything actually changed
   if (oldOffscreen != offscreen[x][r]) {
-    // set "dirty bit"
-    //setBit(dirtyBits[c], r, true);
     dirtyBits[c] = dirtyBits[c] | (1 << r);
   }
   
@@ -722,7 +763,7 @@ boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
  * @param x: The sprite's horizontal position
  * @param y: The sprite's vertical position
  */
-void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, byte x, byte y) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *spriteIdx) {
   byte w = pgm_read_byte_near(spriteIdx);
   byte h = pgm_read_byte_near(++spriteIdx);
 
@@ -753,7 +794,7 @@ void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, byte x, byte y) 
  * @param x: The sprite's horizontal position
  * @param y: The sprite's vertical position
  */
-void GambyGraphicsMode::drawSprite(const prog_uchar *spriteIdx, const prog_uchar *maskIdx, byte x, byte y) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
   byte w = pgm_read_byte_near(spriteIdx);
   byte h = pgm_read_byte_near(++spriteIdx);
 
@@ -982,3 +1023,26 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
     setPixel((byte)i, (byte)y);
 }
 
+
+/**
+ * Write a string to the display.
+ *
+ * @param x: The horizontal position at which to draw the text.
+ * @param y: The vertical position at which to draw the text.
+ * @param s: the string to draw.
+ */
+void GambyGraphicsMode::drawText (int x, int y, char* s) {
+  // TODO: Implement this!
+}
+
+
+/** 
+ * Write a PROGMEM string to the display.
+ *
+ * @param x: The horizontal position at which to draw the text.
+ * @param y: The vertical position at which to draw the text.
+ * @param s: the PROGMEM address of the string to draw.
+ */
+void GambyGraphicsMode::drawText_P(int x, int y, const char *s) {
+  // TODO: Implement this!
+}

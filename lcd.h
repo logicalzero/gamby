@@ -1,4 +1,4 @@
-// Various LCD commands
+// Various LCD commands. Sent to the LCD when Register Select (RS) is LOW.
 
 #define	POWER_CONTROL		B00101111	// all power circuits ON (LCD controlled)
 #define	DC_STEP_UP		B01100100	// 011001xx, xx select 3-5x boosting
