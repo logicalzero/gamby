@@ -746,9 +746,9 @@ boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
   int i;
   // Don't do all the pattern-lookup work for solids
   if (drawPattern == PATTERN_BLACK)
-    return false; // i.e. 0
+    return true; // i.e. 1 - an on pixel
   if (drawPattern == PATTERN_WHITE)
-    return true; // i.e. 1
+    return false; // i.e. 0 - an off pixel
   // coordinates in pattern taken from least two bits of screen coords
   i = (x & B00000011) | ((y & B00000011) << 2);
   // only final bit determines pixel
@@ -1034,7 +1034,7 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
   
   // Fill the rectangle, one pixel at a time.
   for (int x = x1; x <= x2; x++) {
-    for (int y = y1; y < y2; y++) {
+    for (int y = y1; y <= y2; y++) {
       setPixel((int)x, (int)y);
     }
   }
