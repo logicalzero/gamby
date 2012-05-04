@@ -847,8 +847,7 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
     if (y0 > y1) {
       SWAP(y0,y1);
     }
-    for (byte i=y0; i<=y1; i++) 
-      setPixel((byte)x0, i); 
+    drawVline(y0, y1, x0);
     return;
   }
 
@@ -998,7 +997,22 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
  *
  */
 void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
-  // XXX: TO BE IMPLEMENTED.
+  // The SWAP macro uses this variable. Don't remove/rename.
+  int swap;
+
+  // Make sure Xs and Ys are ordered
+  if (x1 > x2) {
+    SWAP(x1,x2);
+  }
+  if (y1 > y2) {
+    SWAP(y1,y2);
+  }
+
+  // Draw as 4 lines
+  drawHline(x1, x2, y1);
+  drawHline(x1, x2, y2);
+  drawVline(y1, y2, x1);
+  drawVline(y1, y2, x2);
 }
 
 
@@ -1007,7 +1021,23 @@ void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
  *
  */
 void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
-  // XXX: TO BE IMPLEMENTED.
+  // The SWAP macro uses this variable. Don't remove/rename.
+  int swap;
+
+  // Make sure Xs and Ys are ordered
+  if (x1 > x2) {
+    SWAP(x1,x2);
+  }
+  if (y1 > y2) {
+    SWAP(y1,y2);
+  }
+  
+  // Fill the rectangle, one pixel at a time.
+  for (int x = x1; x <= x2; x++) {
+    for (int y = y1; y < y2; y++) {
+      setPixel((int)x, (int)y);
+    }
+  }
 }
 
 
@@ -1023,6 +1053,17 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
     setPixel((byte)i, (byte)y);
 }
 
+/**
+ * Private. Draw a simple vertical line.
+ *
+ * @param y1: first Y coordinate, must be lower than y2
+ * @param y2: second Y coordinate, must be greater than y1
+ * @param x: the common y coordinate
+ */
+ void GambyGraphicsMode::drawVline(int y1, int y2, int x) {
+  for (int i=y1; i<=y2; i++) 
+    setPixel((byte)x, (byte)i); 
+}
 
 /**
  * Write a string to the display.
