@@ -7,15 +7,19 @@
 // Major to-do items:
 // ~~~~~~~~~~~~~~~~~~
 // TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops --
-//    but only after everything works.
+//    but only after everything works. Doesn't seem to have much of a benefit,
+//    though... tests don't show a signficant difference, but may be wrong.
 // TODO: Get rid of weird and unnecessary typecasting throughout the code, 
 //    which was originally put in during testing and forgotten about.
+// TODO: Refactor buffer in GambyGraphicsMode/GambyBlockMode to allocate
+//    memory dynamically, allowing for a smaller display area to save RAM,
+//    adding a lightweight score display, et cetera.
+// TODO: Make GambyTextMode the base class? Partial display areas in other
+//    two modes could use the basic text drawing.
 
 // Other items:
 // ~~~~~~~~~~~~
-// TODO: Refactor GambyTextMode::drawChar() so that the drawMode byte is
-//    applied to each column, not per-bit. This would allow underline,
-//    strike-through, etc. Also eliminates need for clockOutBit().
+// TODO: Word-wrap in GambyTextMode. 
 // TODO: Change name of GambyBase::clockOut() to something better. Possibly
 //    writeByte(). Users may want to use this.
 
@@ -152,34 +156,10 @@ void GambyBase::clockOut(byte data) {
 
 
 /**
- * Send a single bit to the LCD.
- * 
- * @param b: The bit to send
- */
-void GambyBase::clockOutBit(boolean b) {
-  //  digitalWrite(LCD_SID, HIGH);  // necessary?
-  //  digitalWrite(LCD_SCK, HIGH);
-  //  digitalWrite(LCD_SID, b);
-  //  digitalWrite(LCD_SCK, LOW);
-  //  digitalWrite(LCD_SCK, HIGH);
-
-  PORTB = PORTB | BIT_SID | BIT_SCK;
-  if (b)
-    PORTB = (PORTB & ~BIT_SCK) | BIT_SID;
-  else
-    PORTB = PORTB & ~(BIT_SCK | BIT_SID);
-  PORTB = PORTB | BIT_SCK;
-
-  // Clock and data pins idle high
-  //  digitalWrite(LCD_SID, HIGH);
-  PORTB = PORTB | BIT_SID;
-}
-
-
-/**
  * Send a single-byte command to the LCD.
  *
- * @param command: The command to send, i.e. one of the constants,
+ * @param command: The command to send, typically one of the constants
+ *    defined in ``lcd.h``.
  */
 void GambyBase::sendCommand (byte command) {
   //  digitalWrite(LCD_RS, COMMAND);
@@ -210,7 +190,7 @@ void GambyBase::sendCommand(byte b1, byte b2) {
 
 /**
  * Erase the screen contents and place the cursor in the first column of the
- * first row.
+ * first page.
  *
  */
 void GambyBase::clearDisplay () {
@@ -231,7 +211,7 @@ void GambyBase::clearDisplay () {
 
 
 /**
- * Read the state of the DPad and buttons, then set the object's `inputs` 
+ * Read the state of the DPad and buttons, then set the object's ``inputs`` 
  * variable.
  *
  */
@@ -257,10 +237,11 @@ void GambyBase::readInputs() {
 
 
 /**
- * Set the column and page location at which the next data will be displayed.
+ * Set the column and 'page' location at which the next data will be 
+ * displayed.
  *
- * @param col:
- * @param line:
+ * @param col: The horizontal position, 0-97.
+ * @param line: The vertical 'page,' 0-7.
  */
 void GambyBase::setPos(byte col, byte line) {
   sendCommand(SET_PAGE_ADDR | line);
@@ -320,7 +301,7 @@ void GambyTextMode::setColumn (byte column) {
  * Set the cursor's column and line (relative to current scrolling).
  *
  * @param col: The column (0 to 95)
- * @param line: The 8 pixel line (0 to 7)
+ * @param line: The vertical 8 pixel 'page' (0 to 7)
  */
 void GambyTextMode::setPos(byte col, byte line) {
   currentColumn = col;
@@ -418,39 +399,37 @@ void GambyTextMode::drawChar(char c) {
     return;
   }
 
-  byte idx = byte(c) - 32;  // index into font data array
-  long d = (long)pgm_read_dword(&font[idx]);  // character data
+  long d = (long)pgm_read_dword(&font[byte(c) - 32]);  // character data
   byte w = (byte)(d & 0x0F);  // character width
   byte b = (byte)((d >> 4) & 0x07); // character baseline offset
 
-  byte i,j,k;
+  byte j;
+  byte col; // The current column of the character
 
   currentColumn += w + 1;
   if (currentColumn > NUM_COLUMNS) {
     newline();
   }
 
-  //  for (i = 0; i < w; i++) {
   for (; w > 0; --w) {
-    // fill to baseline
-    for (k = 0; k < (2 - b); k++)
-      clockOutBit(drawMode);
-
-    // draw column of font bitmap
+    col = 0;
+   
+    // generate column of font bitmap
     for (j = 0; j < 5; j++) {
-      clockOutBit(((d >> 31) ^ drawMode) & 1);	// clock out MSBit of data
+      col = (col << 1) | ((d >> 31) & 1);
       d = d << 0x01;
     }
 
     // fill out top of character.
-    for (k = 0; k<= b; k++)
-      clockOutBit(drawMode);
+    col = col << (b+1);
+
+    clockOut(col ^ drawMode);
   }
+
   // Draw gap ('kerning') between letters, 1px wide.
   clockOut(drawMode);
   //  digitalWrite(LCD_CS, HIGH);
   PORTB = PORTB | BIT_CS;
-
 }
 
 
@@ -700,7 +679,8 @@ void GambyGraphicsMode::update() {
   PORTB = PORTB & ~BIT_CS;
   for (r = 0; r < NUM_PAGES; r++) {
     for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
-      if (bitRead(dirtyBits[c], r)) {
+      //if (bitRead(dirtyBits[c], r)) {
+      if (dirtyBits[c] & (1 << r)) {
         updateBlock(c, r);
       }
     }
