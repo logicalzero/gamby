@@ -543,19 +543,11 @@ void GambyTextMode::drawIcon(const prog_uchar *idx) {
  *
  */
 GambyBlockMode::GambyBlockMode() {
+  int i,j;
+  for (i=0; i<NUM_BLOCK_COLUMNS; i++)
+    for (j=0; j<NUM_PAGES; j++)
+      offscreen[j][i] = 0;
   init();
-}
-
-
-/**
- * Draw a block at a given location.
- *
- * @param x: The horizontal position. 
- * @param y: The vertical position.
- * @param idx: The index of the block to draw.
- */
-void GambyBlockMode::setBlock(byte x, byte y, byte idx) {
-  // TODO: Implement this!
 }
 
 
@@ -571,6 +563,56 @@ byte GambyBlockMode::getBlock(byte x, byte y) {
 }
 
 
+/**
+ * Draw a block at a given location.
+ *
+ * @param x: The horizontal position. 
+ * @param y: The vertical position.
+ * @param idx: The index of the block to draw.
+ */
+void GambyBlockMode::drawBlock(byte x, byte y, byte block) {
+
+  // each page is two blocks high, each block index is 4 bits
+  byte evenBlockIdx, oddBlockIdx;
+  byte page = y >> 1;
+
+  // Get the other block in that 8-pixel-high 'page'
+  // Set the specified block in the offscreen
+  if (y & 1) {
+    // odd blocks shifted to the high four bits
+    oddBlockIdx = block & B00001111;
+    evenBlockIdx = offscreen[x][page] & B00001111;
+    offscreen[x][page] = (oddBlockIdx << 4) | evenBlockIdx;
+  } else {
+    evenBlockIdx = block;
+    oddBlockIdx = (offscreen[x][page] & B11110000);
+    offscreen[x][page] = oddBlockIdx | evenBlockIdx;
+    oddBlockIdx = oddBlockIdx >> 4;
+  }
+
+  // Do the drawing
+  unsigned int oddBlock = pgm_read_word_near(palette + oddBlockIdx);
+  unsigned int evenBlock = pgm_read_word_near(palette + evenBlockIdx);
+  byte i;
+
+  // Don't send set position command if already in the right place
+  if ((currentPage != page) || (currentColumn != x)) {
+    setPos(x<<2, page);
+  }
+
+  PORTB = (PORTB & ~BIT_CS) | BIT_RS;
+
+  for (i=0; i<4; i++) {
+    // Build a two-block set four bits at a time
+    byte combo = (((oddBlock & B00001111) << 4) | (evenBlock & B00001111));
+    clockOut(combo);
+    oddBlock = oddBlock >> 4;
+    evenBlock = evenBlock >> 4;
+  }
+  currentPage = page;
+  currentColumn = x + 1;
+}
+
 /****************************************************************************
  * 
  ****************************************************************************/
@@ -583,6 +625,7 @@ unsigned int GambyGraphicsMode::drawPattern;
  */
 GambyGraphicsMode::GambyGraphicsMode() {
   init();
+  clearScreen();
   drawMode = 0;
 }
 

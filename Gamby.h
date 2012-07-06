@@ -30,6 +30,8 @@
 #define TOTAL_PIXELS            NUM_COLUMNS * NUM_ROWS
 #define ROW_PIXELS              8 * NUM_COLUMNS
 
+#define NUM_BLOCK_COLUMNS       NUM_COLUMNS / 4
+
 #define FIRST_COL               0
 #define LAST_COL                NUM_COLUMNS - 1
 
@@ -49,27 +51,27 @@
 #define DRAW_NONE               B00011000  // Both colors transparent equals none.
 #define DRAW_MODE_INVERSE       B00100000
 
-#define TAB_WIDTH	8
+#define TAB_WIDTH		8
 
 // Word wrap modes
-#define WRAP_NONE	B00000001    // text extends off beyond the right side of the screen. Fastest.
-#define WRAP_CHAR	B00000010    // text wraps at the character that would extend beyond screen width.
-#define WRAP_WORD	B00000100    // text breaks on whitespace. Slowest.
+#define WRAP_NONE		B00000001    // text extends off beyond the right side of the screen. Fastest.
+#define WRAP_CHAR		B00000010    // text wraps at the character that would extend beyond screen width.
+#define WRAP_WORD		B00000100    // text breaks on whitespace. Slowest.
 
 // Screen scrolling modes. NORMAL is marginally slower than the other two.
-#define SCROLL_NONE	B00001000    // text goes off the bottom of the screen.
-#define SCROLL_NORMAL	B00010000    // the entire display scrolls vertically when the bottom of the display is reached.
-#define SCROLL_WRAP	B00100000    // Text resumes on the top line of the display after reaching the bottom.
+#define SCROLL_NONE		B00001000    // text goes off the bottom of the screen.
+#define SCROLL_NORMAL		B00010000    // the entire display scrolls vertically when the bottom of the display is reached.
+#define SCROLL_WRAP		B00100000    // Text resumes on the top line of the display after reaching the bottom.
 
 // Inputs
-#define DPAD_UP		B10000000
-#define DPAD_LEFT	B01000000
-#define DPAD_RIGHT	B00100000
-#define DPAD_DOWN	B00010000
-#define BUTTON_1	B00001000
-#define BUTTON_2	B00000100
-#define BUTTON_3	B00000010
-#define BUTTON_4	B00000001
+#define DPAD_UP			B10000000
+#define DPAD_LEFT		B01000000
+#define DPAD_RIGHT		B00100000
+#define DPAD_DOWN		B00010000
+#define BUTTON_1		B00001000
+#define BUTTON_2		B00000100
+#define BUTTON_3		B00000010
+#define BUTTON_4		B00000001
 
 
 // ###########################################################################
@@ -142,13 +144,15 @@ class GambyTextMode: public GambyBase {
 class GambyBlockMode: public GambyBase {
  public:
   GambyBlockMode();
-  void setBlock(byte, byte, byte);
+  void drawBlock(byte, byte, byte);
   byte getBlock(byte, byte);
 
   const prog_uint16_t* palette; /**<  */
   byte offscreen[NUM_COLUMNS/4][NUM_PAGES];
 
  private:
+  byte currentColumn;
+  byte currentPage;
 };
 
 #define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3
