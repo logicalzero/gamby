@@ -10,8 +10,6 @@ by David R. Stokes (gamby@logicalzero.com) 2012-07-06
 */
 
 #include <Gamby.h>
-#include <lcd.h>
-#include <patterns.h>
 
 // Bring in the font from the 'font' tab (font.ino)
 extern const long font[];
@@ -34,7 +32,7 @@ void setup () {
   // That's all that's required! From here on, it's up to you. All of Gamby's
   // functionality is contained in the 'gamby' object, which you use like
   // this:
-  gamby.drawText("Hello, GAMBY!\n");
+  gamby.println("Hello, GAMBY!");
 }
 
 void loop () {

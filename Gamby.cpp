@@ -1,8 +1,6 @@
 #include "Arduino.h"
 
 #include "Gamby.h"
-#include "lcd.h"
-#include "patterns.h"
 
 // Major to-do items:
 // ~~~~~~~~~~~~~~~~~~
@@ -172,7 +170,7 @@ void GambyBase::sendCommand (byte command) {
 
 
 /**
- * sendCommand(): Send a two-byte command to the LCD.
+ * Send a two-byte command to the LCD.
  *
  * @param b1: The first byte
  * @param b2: The second byte
@@ -190,7 +188,9 @@ void GambyBase::sendCommand(byte b1, byte b2) {
 
 /**
  * Erase the screen contents and place the cursor in the first column of the
- * first page.
+ * first page. If used in GambyGraphicsMode, only the screen is cleared;
+ * the contents of the buffer are preserved and will be redrawn when
+ * `update()` is called.
  *
  */
 void GambyBase::clearDisplay () {
@@ -289,7 +289,7 @@ void GambyTextMode::scroll(int s) {
 /**
  * Set the horizontal position of the cursor.
  *
- * @param column:
+ * @param column  The horizontal position on screen (0-95).
  */
 void GambyTextMode::setColumn (byte column) {
   sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), 
@@ -300,8 +300,8 @@ void GambyTextMode::setColumn (byte column) {
 /**
  * Set the cursor's column and line (relative to current scrolling).
  *
- * @param col: The column (0 to 95)
- * @param line: The vertical 8 pixel 'page' (0 to 7)
+ * @param col   The column (0 to 95)
+ * @param line  The vertical 8 pixel 'page' (0 to 7)
  */
 void GambyTextMode::setPos(byte col, byte line) {
   currentColumn = col;
@@ -314,11 +314,10 @@ void GambyTextMode::setPos(byte col, byte line) {
 }
 
 
-/**
- * Retrieves the width of a given character.
+/** Retrieves the width of a given character.
  *
- * @param idx:The actual index into font data (ASCII value - 32)
- * @return: The character's with in pixels
+ * @param idx  The actual index into font data (ASCII value - 32)
+ * @return     The character's with in pixels
  */
 byte GambyTextMode::getCharWidth(byte idx) {
   return (byte)(pgm_read_dword(&font[idx]) & 0x0F); 
@@ -336,7 +335,8 @@ byte GambyTextMode::getCharBaseline(byte idx) {
 }
 
 
-/** Get the width (in pixels) of a string.
+/** 
+ * Get the width (in pixels) of a string.
  *
  * @param s: the string to measure.
  */
@@ -352,7 +352,8 @@ int GambyTextMode::getTextWidth(char* s) {
 }
 
 
-/** Get the width (in pixels) of a string in PROGMEM.
+/** 
+ * Get the width (in pixels) of a string in PROGMEM.
  *
  * @param s: the PROGMEM address of the string to measure.
  */
@@ -438,9 +439,21 @@ void GambyTextMode::drawChar(char c) {
  *
  * @param s: the string to draw.
  */
-void GambyTextMode::drawText (char* s) {
+void GambyTextMode::print (char* s) {
   for (int c=0; s[c] != '\0'; c++)
     drawChar(s[c]);
+}
+
+
+/**
+ * Write a string to the display.
+ *
+ * @param s: the string to draw.
+ */
+void GambyTextMode::println(char* s) {
+  for (int c=0; s[c] != '\0'; c++)
+    drawChar(s[c]);
+  newline();
 }
 
 
@@ -449,12 +462,22 @@ void GambyTextMode::drawText (char* s) {
  *
  * @param s: the PROGMEM address of the string to draw.
  */
-void GambyTextMode::drawText_P(const char *s) {
+void GambyTextMode::print_P(const char *s) {
   char c = pgm_read_byte_near(s);
   while (c != '\0') {
     drawChar(c);
     c = pgm_read_byte_near(++s);
   }
+}
+
+/** 
+ * Write a PROGMEM string to the display.
+ *
+ * @param s: the PROGMEM address of the string to draw.
+ */
+void GambyTextMode::println_P(const char *s) {
+  print_P(s);
+  newline();
 }
 
 
@@ -521,9 +544,11 @@ void GambyTextMode::newline() {
 
 
 /** 
- * Draw an 8px high icon at the current position on screen.
+ * Draw an 8px high icon at the current position on screen. The icon itself
+ * is stored in PROGMEM.
  *
- * @param idx: 
+ * @param idx: The icon's location in PROGMEM, typically supplied as the name
+ *    of a PROGMEM constant.
  */
 void GambyTextMode::drawIcon(const prog_uchar *idx) {
   PORTB = (PORTB & ~BIT_CS) | BIT_RS;
@@ -539,8 +564,8 @@ void GambyTextMode::drawIcon(const prog_uchar *idx) {
  ****************************************************************************/
 
 /**
- * Constructor.
- *
+ * Constructor. Runs once when the mode's instance is created, initializing
+ * the display.
  */
 GambyBlockMode::GambyBlockMode() {
   int i,j;
@@ -552,11 +577,11 @@ GambyBlockMode::GambyBlockMode() {
 
 
 /**
- * Retrieve the index of the block at the given location.
+ * Retrieve the index (number) of the block at the given location.
  *
- * @param x: The horizontal position. 
- * @param y: The vertical position.
- * @return: The index of the block at the given coordinates.
+ * @param x  The horizontal position. 
+ * @param y  The vertical position.
+ * @return   The index of the block at the given coordinates, 0-15.
  */
 byte GambyBlockMode::getBlock(byte x, byte y) {
   // TODO: Implement this!
@@ -564,11 +589,42 @@ byte GambyBlockMode::getBlock(byte x, byte y) {
 
 
 /**
+ * Set a block at a given location without immediately updating the screen. 
+ * The change is made to the offscreen buffer; a separate call to update() 
+ * is required for it to show up. Use this if you want to do a lot of drawing 
+ * and only show the end results.
+ *
+ * @param x     The horizontal position. 
+ * @param y     The vertical position.
+ * @param block The index of the block to draw.
+ */
+void GambyBlockMode::setBlock(byte x, byte y, byte block) {
+
+  // each page is two blocks high, each block index is 4 bits
+  byte evenBlockIdx, oddBlockIdx;
+  byte page = y >> 1;
+
+  // Get the other block in that 8-pixel-high 'page'
+  // Set the specified block in the offscreen
+  if (y & 1) {
+    // odd blocks shifted to the high four bits
+    oddBlockIdx = block & B00001111;
+    evenBlockIdx = offscreen[x][page] & B00001111;
+    offscreen[x][page] = (oddBlockIdx << 4) | evenBlockIdx;
+  } else {
+    evenBlockIdx = block;
+    oddBlockIdx = (offscreen[x][page] & B11110000);
+    offscreen[x][page] = oddBlockIdx | evenBlockIdx;
+  }
+}
+ 
+
+/**
  * Draw a block at a given location.
  *
- * @param x: The horizontal position. 
- * @param y: The vertical position.
- * @param idx: The index of the block to draw.
+ * @param x     The horizontal position. 
+ * @param y     The vertical position.
+ * @param block The index of the block to draw.
  */
 void GambyBlockMode::drawBlock(byte x, byte y, byte block) {
 
@@ -620,7 +676,8 @@ void GambyBlockMode::drawBlock(byte x, byte y, byte block) {
 unsigned int GambyGraphicsMode::drawPattern;
 
 /**
- * Constructor.
+ * Constructor. Runs once when the mode's instance is created, initializing
+ * the display.
  *
  */
 GambyGraphicsMode::GambyGraphicsMode() {
@@ -631,7 +688,8 @@ GambyGraphicsMode::GambyGraphicsMode() {
 
 
 /**
- *
+ * Clears the display buffer. The screen itself doesn't clear until
+ * update() is called.
  *
  */
 void GambyGraphicsMode::clearScreen() {
@@ -758,12 +816,13 @@ void GambyGraphicsMode::updateBlock(byte c, byte r) {
 
 
 /**
- * Get pixel from a 4x4 grid (a 16b int) for the given screen coordinates. 
- * Uses the drawPattern variable.
+ * Get pixel from a 4x4 pixel pattern (stored as a 16b int) for the given 
+ * screen coordinates. The pattern is the drawPattern variable is used.
  *
- * @param x: Horizontal position on screen.
- * @param y: Vertical position on screen.
- * @return: The pixel for the given coordinates in the given pattern (0 or 1).
+ * @param x  Horizontal position on screen.
+ * @param y  Vertical position on screen.
+ * @return   The pixel for the given coordinates in the given pattern 
+ *    (`true` or `false`).
  */
 boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
   int i;
@@ -782,9 +841,10 @@ boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
 /**
  * drawSprite (plain version): Draw a bitmap graphic.
  *
- * @param spriteIdx: The address of the sprite (e.g. the constant's name) 
- * @param x: The sprite's horizontal position
- * @param y: The sprite's vertical position
+ * @param spriteIdx  The address of the sprite in PROGMEM (e.g. the 
+ *     constant's name) 
+ * @param x  The sprite's horizontal position
+ * @param y  The sprite's vertical position
  */
 void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *spriteIdx) {
   byte w = pgm_read_byte_near(spriteIdx);
@@ -808,8 +868,8 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *spriteIdx) 
 
 
 /**
- * drawSprite (masked version): Draw a sprite, using another sprite as a mask 
- * (i.e. alpha channel). Note: the mask must be the same dimensions as the
+ * Masked version: Draw a sprite, using another sprite as a mask (like an 
+ * alpha channel). Note: the mask must be the same dimensions as the
  * foreground sprite. 
  *
  * @param spriteIdx: The address of the foreground sprite (e.g. the constant's name) 
@@ -980,7 +1040,7 @@ void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
  * Draw a filled circle using the current drawPattern.
  *
  * @param cx: The horizontal position of the disc's center
- * @param xy: The vertical position of the disc's center
+ * @param cy: The vertical position of the disc's center
  * @param radius: The disc's radius
  */
 void GambyGraphicsMode::disc(int cx, int cy, int radius) {
