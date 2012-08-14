@@ -21,9 +21,6 @@ extern const long font[];
 GambyTextMode gamby;
 
 void setup () {
-  // Initialize Gamby!
-  gamby = GambyTextMode();
-
   // Set the font. You generally need to do this only once, usually just after
   // initializing Gamby. You could, however, do this elsewhere in your 
   // sketch -- for example, if you wanted to change fonts on the fly.

@@ -81,10 +81,6 @@
 
 // draw mode flags
 // Maybe all the flags should be merged into an int.
-#define FILL_BLACK_TRANSPARENT  B00000001
-#define FILL_WHITE_TRANSPARENT  B00000010
-#define FILL_NONE               B00000011  // Both colors transparent equals none.
-#define FILL_MODE_INVERSE       B00000100
 #define DRAW_BLACK_TRANSPARENT  B00001000
 #define DRAW_WHITE_TRANSPARENT  B00010000
 #define DRAW_NONE               B00011000  // Both colors transparent equals none.
@@ -95,7 +91,7 @@
 // Word wrap modes
 #define WRAP_NONE		B00000001    // text extends off beyond the right side of the screen. Fastest.
 #define WRAP_CHAR		B00000010    // text wraps at the character that would extend beyond screen width.
-#define WRAP_WORD		B00000100    // text breaks on whitespace. Slowest.
+#define WRAP_WORD		B00000100    // text breaks on whitespace. Slowest. Temporarily removed.
 
 // Screen scrolling modes. NORMAL is marginally slower than the other two.
 #define SCROLL_NONE		B00001000    // text goes off the bottom of the screen.
@@ -107,6 +103,10 @@
 #define DPAD_LEFT		B01000000
 #define DPAD_RIGHT		B00100000
 #define DPAD_DOWN		B00010000
+#define DPAD_UP_LEFT            DPAD_UP | DPAD_LEFT
+#define DPAD_UP_RIGHT           DPAD_UP | DPAD_RIGHT
+#define DPAD_DOWN_LEFT          DPAD_DOWN | DPAD_LEFT
+#define DPAD_DOWN_RIGHT         DPAD_DOWN | DPAD_RIGHT
 #define BUTTON_1		B00001000
 #define BUTTON_2		B00000100
 #define BUTTON_3		B00000010
@@ -141,8 +141,7 @@
 class GambyBase {
  public:
   void init();
-  void clockOut(byte);
-  void clockOutBit(boolean);
+  void sendByte(byte);
   void sendCommand(byte);
   void sendCommand(byte, byte);
   void clearDisplay();
@@ -150,10 +149,8 @@ class GambyBase {
   void setPos(byte, byte);
 
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
-  static unsigned int drawMode;  /**<  */
+  static unsigned int drawMode;  /**< The current drawing mode. */
 
- private:
-  static unsigned int toneTimeRemaining;
 };
 
 
@@ -245,7 +242,7 @@ class GambyGraphicsMode: public GambyBase {
   static unsigned int drawPattern; /**< The 4x4 pixel pattern to use when drawing. */
 
   byte offscreen[NUM_COLUMNS][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
-  byte dirtyBits[NUM_DIRTY_COLUMNS];
+  byte dirtyBits[NUM_DIRTY_COLUMNS]; /**< A lower-resolution grid that stores what regions of the screen need to be redrawn */
 
  private:
   void updateBlock(byte, byte);
