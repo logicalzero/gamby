@@ -5,7 +5,7 @@
 //  bits 0-24: the character bitmap (by column)
 //  bits 25-27: character vertical offset
 //  bits 28-31: character width
-const prog_int32_t font[] PROGMEM = {
+PROGMEM prog_int32_t font[] = {
   0x00000002L,    // character ' ' (32)
   0xB8000001L,    // character '!' (33)
   0x18060003L,    // character '"' (34)
