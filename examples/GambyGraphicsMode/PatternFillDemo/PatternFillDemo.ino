@@ -39,19 +39,16 @@ GambyGraphicsMode gamby;
 
 
 void setup () {
-  // Erase the offscreen buffer (the 'scratchpad' where the image is stored 
-  // before it's displayed).  
-  gamby.clearScreen();
-  
-  // The updated buffer does not actually get displayed until a call to 
-  // update() is made. We'll see why further down.
-  gamby.update();
+  // Nothing needs to be done in setup(). The screen is cleared when the
+  // GambyGraphicsMode object 'gamby' is created.
 }
 
 
 void loop () {
-  // Chose a random pattern, screen coordinates and radius
+  // Choose a random pattern from the array of patterns we created
   int p = patterns[random(16)];
+  
+  // Choose a random position and radius for the circle to draw
   int x = random(0,NUM_COLUMNS);
   int y = random(0,NUM_ROWS);
   int r = random(8,20);
@@ -60,8 +57,9 @@ void loop () {
   gamby.drawPattern = p;
   
   // Draw a disc (filled circle). It will use the pattern set in the previous
-  // line. The drawing is done on the offscreen buffer and not immediately
-  // displayed on the LCD.
+  // line. The drawing is done on the offscreen buffer (a 'scratchpad' where 
+  // the image is stored before it's displayed) and not immediately drawn on 
+  // the LCD.
   gamby.disc(x,y,r);
   
   // Set the drawPattern to solid black and draw a solid outline (unfilled) 

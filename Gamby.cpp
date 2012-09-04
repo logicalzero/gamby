@@ -49,6 +49,8 @@ const byte BIT_CS  =	B00100000;
  * Swap: Used in line drawing, assumes a variable named 'swap' has been
  * declared, and it is a type compatible with both 'x' and 'y'.
  * Just makes the code a little cleaner-looking.
+ * NOTE: NOT REALLY A SINGLE STATEMENT; NEEDS TO BE CALLED FROM WITHIN 
+ * CURLY BRACKETS.
  */
 #define SWAP(x,y) swap=x; x=y; y=swap
 
@@ -500,7 +502,8 @@ void GambyTextMode::clearLine () {
     sendByte(0);
   }
   // restore previous column.
-  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), B00001111 & currentColumn); // & to mask out high bits
+  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
+	      B00001111 & currentColumn); // & to mask out high bits
 
   //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
   //  digitalWrite(LCD_CS, HIGH);
@@ -636,7 +639,8 @@ void GambyBlockMode::setBlock(byte x, byte y, byte block) {
  * @param block The index of the block to draw (0 to 15).
  */
 void GambyBlockMode::drawBlock(byte x, byte y, byte block) {
-
+  // TODO: Optimize this!
+  
   // each page is two blocks high, each block index is 4 bits
   byte evenBlockIdx, oddBlockIdx;
   byte page = y >> 1;
@@ -677,6 +681,54 @@ void GambyBlockMode::drawBlock(byte x, byte y, byte block) {
   currentPage = page;
   currentColumn = x + 1;
 }
+
+
+/**
+ * Redraw the entire screen. In `GambyBlockMode`, this will cause the entire
+ * display to redraw, showing blocks set via `setBlock()`. 
+ *
+ */
+void GambyBlockMode::update() {
+  update(0,0,NUM_BLOCK_COLUMNS-1, NUM_BLOCK_ROWS-1);
+}
+
+
+/**
+ * Redraw a specific portion of the display. When used with `setBlock()`, you
+ * can update only the portion you know you have changed, which will be
+ * faster.
+ *
+ * @param x1 The left edge of the region to update, 0 to 23.
+ * @param y1 The top edge of the region to update, 0 to 15.
+ * @param x2 The right edge of the region to update, x1 to 24.
+ * @param y2 The bottom edge of the region to update y1 to 15.
+ */
+void GambyBlockMode::update(byte x1, byte y1, byte x2, byte y2) {
+  // TODO: This can probably be optimized.
+
+  byte x, y, i;
+  unsigned int oddBlock, evenBlock;
+
+  for (y = (y1 & ~1); y <= (y2 | 1); y += 2) {
+    setPos(x1 << 2, y >> 1);
+    DATA_MODE();
+    for (x=x1; x<=x2; x++) {
+      oddBlock = pgm_read_word_near(palette + ((offscreen[x][y >> 1] >> 4) & B00001111));
+      evenBlock = pgm_read_word_near(palette + (offscreen[x][y >> 1] & B00001111));
+      for (i=0; i<4; i++) {
+	// Build a two-block set four bits at a time
+	//byte combo = (((oddBlock & B00001111) << 4) | (evenBlock & B00001111));
+	sendByte(((oddBlock & B00001111) << 4) | (evenBlock & B00001111));
+	oddBlock = oddBlock >> 4;
+	evenBlock = evenBlock >> 4;
+      }
+    }
+  }
+  setPos(0,0);
+  currentPage = 0;
+  currentColumn = 0;
+}
+
 
 /****************************************************************************
  * 

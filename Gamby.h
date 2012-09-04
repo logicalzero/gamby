@@ -70,6 +70,7 @@
 #define ROW_PIXELS              8 * NUM_COLUMNS
 
 #define NUM_BLOCK_COLUMNS       NUM_COLUMNS / 4
+#define NUM_BLOCK_ROWS          NUM_PAGES * 2
 
 #define FIRST_COL               0
 #define LAST_COL                NUM_COLUMNS - 1
@@ -115,7 +116,7 @@
 // Fill patterns (4x4 pixel grids as 16b ints)
 
 #define PATTERN_WHITE           0x0000
-#define PATTERN_BLACK           0xFFFF
+#define PATTERN_BLACK           0xffff
 #define PATTERN_GRAY            0x5a5a  // B0101101001011010
 #define PATTERN_DK_GRAY         0xfaf5  // B1111101011110101
 #define PATTERN_LT_GRAY         0x050a  // B0000010100001010
@@ -202,6 +203,8 @@ class GambyBlockMode: public GambyBase {
   void drawBlock(byte, byte, byte);
   byte getBlock(byte, byte);
   void setBlock(byte, byte, byte);
+  void update();
+  void update(byte, byte, byte, byte);
 
   const prog_uint16_t* palette; /**< The palette of 16 4x4 pixel blocks */
   byte offscreen[NUM_COLUMNS/4][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
