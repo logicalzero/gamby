@@ -108,10 +108,12 @@
 #define DPAD_UP_RIGHT           DPAD_UP | DPAD_RIGHT
 #define DPAD_DOWN_LEFT          DPAD_DOWN | DPAD_LEFT
 #define DPAD_DOWN_RIGHT         DPAD_DOWN | DPAD_RIGHT
+#define DPAD_ANY		B11110000
 #define BUTTON_1		B00001000
 #define BUTTON_2		B00000100
 #define BUTTON_3		B00000010
 #define BUTTON_4		B00000001
+#define BUTTON_ANY		B00001111  
 
 // Fill patterns (4x4 pixel grids as 16b ints)
 
@@ -131,9 +133,40 @@
 #define PATTERN_CHECKER         0x33cc  // B0011001111001100
 #define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
 
+
+/****************************************************************************
+ * Pins
+ ****************************************************************************/
+
+#define LCD_SID 	8	// Data
+#define LCD_SCK 	10	// Clock
+#define LCD_RS  	11	// Register Select (LOW = command, HIGH = data)
+#define LCD_RES 	12 	// Reset (inverted)
+#define LCD_CS  	13    	// Chip select (inverted)
+
+#define BIT_SID  	B00000001
+#define BIT_SCK 	B00000100
+#define BIT_RS  	B00001000
+#define BIT_RES 	B00010000
+#define BIT_CS  	B00100000
+
+
 // ###########################################################################
 //
 // ###########################################################################
+
+
+/**
+ * Macros to put LCD into 'data' or 'command' mode (i.e. setting CS and RS).
+ * They make the code a bit more readable.
+ */
+#define COMMAND_MODE() PORTB = PORTB & ~(BIT_RS | BIT_CS);
+#define DATA_MODE()    PORTB = (PORTB & ~BIT_CS) | BIT_RS;
+
+// ###########################################################################
+//
+// ###########################################################################
+
 
 /**
  * The base class for all of Gamby's "modes." This should be considered an 
@@ -149,8 +182,20 @@ class GambyBase {
   void readInputs();
   void setPos(byte, byte);
 
+  byte getCharWidth(byte);
+  byte getCharBaseline(byte);
+  int getTextWidth(char *);
+  int getTextWidth_P(const char *);
+  void drawIcon(const prog_uchar *);
+
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
   static unsigned int drawMode;  /**< The current drawing mode. */
+
+  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
+
+  // private:
+  byte currentPage;
+  byte currentColumn;
 
 };
 
@@ -166,16 +211,11 @@ class GambyTextMode: public GambyBase {
   GambyTextMode();
   void setPos(byte, byte);
   void setColumn(byte);
-  byte getCharWidth(byte);
-  byte getCharBaseline(byte);
-  int getTextWidth(char *);
-  int getTextWidth_P(const char *);
   void drawChar(char);
   void print(char *);
   void println(char *);
   void print_P(const char *);
   void println_P(const char *);
-  void drawIcon(const prog_uchar *);
   void clearLine();
   void clearScreen();
   void newline();
@@ -183,11 +223,8 @@ class GambyTextMode: public GambyBase {
 
   byte wrapMode;            /**< How GAMBY should behave when text goes beyond the right margin. */
   byte scrollMode;          /**< How GAMBY should behave when text goes beyond the bottom of the screen. */
-  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
 
  private:
-  byte currentLine;
-  byte currentColumn;
   int offset;
 
 };
@@ -200,6 +237,7 @@ class GambyTextMode: public GambyBase {
 class GambyBlockMode: public GambyBase {
  public:
   GambyBlockMode();
+  void clearScreen();
   void drawBlock(byte, byte, byte);
   byte getBlock(byte, byte);
   void setBlock(byte, byte, byte);
@@ -207,11 +245,8 @@ class GambyBlockMode: public GambyBase {
   void update(byte, byte, byte, byte);
 
   const prog_uint16_t* palette; /**< The palette of 16 4x4 pixel blocks */
-  byte offscreen[NUM_COLUMNS/4][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
+  byte offscreen[NUM_BLOCK_COLUMNS][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
 
- private:
-  byte currentColumn;
-  byte currentPage;
 };
 
 #define NUM_DIRTY_COLUMNS NUM_COLUMNS >> 3

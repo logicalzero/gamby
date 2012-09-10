@@ -11,35 +11,17 @@
 //    which was originally put in during testing and forgotten about.
 // TODO: Refactor buffer in GambyGraphicsMode/GambyBlockMode to allocate
 //    memory dynamically, allowing for a smaller display area to save RAM,
-//    adding a lightweight score display, et cetera.
+//    adding a lightweight score display, et cetera. Longer-term.
 // TODO: Make GambyTextMode the base class? Partial display areas in other
 //    two modes could use the basic text drawing.
 
 // Other items:
 // ~~~~~~~~~~~~
 // TODO: Word-wrap in GambyTextMode. 
-// TODO: Change name of GambyBase::clockOut() to something better. Possibly
-//    writeByte(). Users may want to use this.
 
 // TODO: Consider doing something to support high-bit ASCII in a reasonable
 //    way. Possibly do something to skip over symbols, just use letters.
 
-
-/****************************************************************************
- * Pins
- ****************************************************************************/
-
-const int LCD_SID =	8;	// Data
-const int LCD_SCK =	10;	// Clock
-const int LCD_RS  =	11;	// Register Select (LOW = command, HIGH = data)
-const int LCD_RES =	12; 	// Reset (inverted)
-const int LCD_CS  =	13;    	// Chip select (inverted)
-
-const byte BIT_SID = 	B00000001;
-const byte BIT_SCK =	B00000100;
-const byte BIT_RS  =	B00001000;
-const byte BIT_RES =	B00010000;
-const byte BIT_CS  =	B00100000;
 
 /****************************************************************************
  * Macros
@@ -209,6 +191,8 @@ void GambyBase::clearDisplay () {
     //    digitalWrite(LCD_CS, HIGH);
     PORTB = PORTB | BIT_CS;
   }
+  currentColumn = 0;
+  currentPage = 0;
 }
 
 
@@ -250,7 +234,84 @@ void GambyBase::setPos(byte col, byte line) {
   sendCommand(SET_PAGE_ADDR | line);
   sendCommand(SET_COLUMN_ADDR_1 + ((col >> 4) & B00000111), 
 	      SET_COLUMN_ADDR_2 | (col & B00001111)); 
+  currentColumn = col;
+  currentPage = line;
 }
+
+
+/** 
+ * Draw an 8px high icon at the current position on screen. The icon itself
+ * is stored in PROGMEM.
+ *
+ * @param icon: The icon's location in `PROGMEM` (e.g. the name of the 
+ *    `PROGMEM` constant).
+ */
+void GambyBase::drawIcon(const prog_uchar *icon) {
+  DATA_MODE();
+  byte w = pgm_read_byte_near(icon);
+  currentColumn += w;
+  for (; w > 0; w--) {
+    sendByte(pgm_read_byte_near(++icon));
+  }
+}
+
+
+/** Retrieves the width of a given character.
+ *
+ * @param idx  The actual index into font data (ASCII value - 32)
+ * @return     The character's with in pixels
+ */
+byte GambyBase::getCharWidth(byte idx) {
+  return (byte)(pgm_read_dword(&font[idx]) & 0x0F); 
+}
+
+
+/**
+ * Get the vertical offset of a character.
+ *
+ * @param idx: The actual index into font data (ASCII value - 32)
+ * @return: The character's vertical offset
+ */
+byte GambyBase::getCharBaseline(byte idx) {
+  return (byte)((pgm_read_dword(&font[idx]) >> 4) & 0x07);
+}
+
+
+/** 
+ * Get the width (in pixels) of a string.
+ *
+ * @param s: the string to measure.
+ */
+int GambyBase::getTextWidth(char* s) {
+  int width = 0;
+  for (int i=0; s[i] != '\0'; i++) {
+    char c = s[i]-32;
+    if (c >= 0)
+      width += getCharWidth(c) + 1; // width + gutter
+  }
+  // No gutter after last character, so subtract it.
+  return width-1;
+}
+
+
+/** 
+ * Get the width (in pixels) of a string in `PROGMEM`.
+ *
+ * @param s: the `PROGMEM` address (e.g. the constant's name) of the string 
+ *    to measure.
+ */
+int GambyBase::getTextWidth_P(const char *s) {
+  int width = 0;
+  char c = pgm_read_byte_near(s);
+  while (c != '\0') {
+    c -= 32;
+    if (c > 0)
+      width += getCharWidth(c) + 1;
+    c = pgm_read_byte_near(++s);
+  }
+  return width-1;
+}
+
 
 
 /****************************************************************************
@@ -263,7 +324,7 @@ void GambyBase::setPos(byte col, byte line) {
  */
 GambyTextMode::GambyTextMode() {
   init();
-  currentLine = 0;
+  currentPage = 0;
   currentColumn = 0;
   offset = 0;
 
@@ -317,63 +378,6 @@ void GambyTextMode::setPos(byte col, byte line) {
 }
 
 
-/** Retrieves the width of a given character.
- *
- * @param idx  The actual index into font data (ASCII value - 32)
- * @return     The character's with in pixels
- */
-byte GambyTextMode::getCharWidth(byte idx) {
-  return (byte)(pgm_read_dword(&font[idx]) & 0x0F); 
-}
-
-
-/**
- * Get the vertical offset of a character.
- *
- * @param idx: The actual index into font data (ASCII value - 32)
- * @return: The character's vertical offset
- */
-byte GambyTextMode::getCharBaseline(byte idx) {
-  return (byte)((pgm_read_dword(&font[idx]) >> 4) & 0x07);
-}
-
-
-/** 
- * Get the width (in pixels) of a string.
- *
- * @param s: the string to measure.
- */
-int GambyTextMode::getTextWidth(char* s) {
-  int width = 0;
-  for (int i=0; s[i] != '\0'; i++) {
-    char c = s[i]-32;
-    if (c >= 0)
-      width += getCharWidth(c) + 1; // width + gutter
-  }
-  // No gutter after last character, so subtract it.
-  return width-1;
-}
-
-
-/** 
- * Get the width (in pixels) of a string in `PROGMEM`.
- *
- * @param s: the `PROGMEM` address (e.g. the constant's name) of the string 
- *    to measure.
- */
-int GambyTextMode::getTextWidth_P(const char *s) {
-  int width = 0;
-  char c = pgm_read_byte_near(s);
-  while (c != '\0') {
-    c -= 32;
-    if (c > 0)
-      width += getCharWidth(c) + 1;
-    c = pgm_read_byte_near(++s);
-  }
-  return width-1;
-}
-
-
 /**
  * Draw a character at the current screen position.
  *
@@ -390,6 +394,7 @@ void GambyTextMode::drawChar(char c) {
   DATA_MODE();
 
   if (c == '\t') {
+    // If the tab will exceed the screen width, new line:
     if (currentColumn + 8 > NUM_COLUMNS) {
       newline();
       return;
@@ -516,8 +521,6 @@ void GambyTextMode::clearLine () {
  *
  */
 void GambyTextMode::clearScreen() {
-  currentColumn = 0;
-  currentLine = 0;
   offset = 0;
   clearDisplay();
 }
@@ -529,11 +532,11 @@ void GambyTextMode::clearScreen() {
  * 
  */
 void GambyTextMode::newline() {
-  currentLine++;
-  if (currentLine >= NUM_PAGES) {
+  currentPage++;
+  if (currentPage >= NUM_PAGES) {
     switch (scrollMode) {
     case SCROLL_WRAP:
-      currentLine = 0;
+      currentPage = 0;
       break;
 
     case SCROLL_NORMAL:
@@ -541,10 +544,10 @@ void GambyTextMode::newline() {
 
     default:
       // both SCROLL_NORMAL and SCROLL_NONE set the current line to the last.
-      currentLine = (NUM_PAGES - 1);
+      currentPage = (NUM_PAGES - 1);
     }
   }
-  sendCommand(SET_PAGE_ADDR | (currentLine - offset));
+  sendCommand(SET_PAGE_ADDR | (currentPage - offset));
   sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
   currentColumn = 0;
   clearLine();
@@ -552,21 +555,6 @@ void GambyTextMode::newline() {
 }
 
 
-/** 
- * Draw an 8px high icon at the current position on screen. The icon itself
- * is stored in PROGMEM.
- *
- * @param icon: The icon's location in `PROGMEM` (e.g. the name of the 
- *    `PROGMEM` constant).
- */
-void GambyTextMode::drawIcon(const prog_uchar *icon) {
-  DATA_MODE();
-  byte w = pgm_read_byte_near(icon);
-  currentColumn += w;
-  for (; w > 0; w--) {
-    sendByte(pgm_read_byte_near(++icon));
-  }
-}
 
 /****************************************************************************
  * 
@@ -580,10 +568,21 @@ GambyBlockMode::GambyBlockMode() {
   byte i,j;
   for (i=0; i<NUM_BLOCK_COLUMNS; i++)
     for (j=0; j<NUM_PAGES; j++)
-      offscreen[j][i] = 0;
+      offscreen[i][j] = 0;
   init();
 }
 
+/**
+ *
+ *
+ */
+void GambyBlockMode::clearScreen() {
+  byte i,j;
+  for (i=0; i<NUM_BLOCK_COLUMNS; i++)
+    for (j=0; j<NUM_PAGES; j++)
+      offscreen[i][j] = 0;
+  clearDisplay();
+}
 
 /**
  * Retrieve the index (number) of the block at the given location.
