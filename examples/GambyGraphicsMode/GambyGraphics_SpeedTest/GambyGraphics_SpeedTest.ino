@@ -35,52 +35,62 @@ void setup () {
   Serial.println("\nGambyGraphics_SpeedTest starting...");
 }
 
+unsigned long total_times[9] = {0,0,0,0,0,0,0,0,0};
 
 void loop () {
   Serial.print("== run ");
   Serial.println(runs, DEC);
   
   gamby.clearScreen();
-  setPixelTest1();
+  total_times[0] += setPixelTest1();
   delay(1000);
   
   gamby.clearScreen();
-  setPixelTest2();
+  total_times[1] += setPixelTest2();
   delay(1000);
   
   gamby.clearScreen();
-  concentricCircles1();
+  total_times[2] += concentricCircles1();
   delay(1000);
   
   gamby.clearScreen();
-  moire(0xFFFF);
+  total_times[3] += moire(0xFFFF);
   delay(1000);
   
   gamby.clearScreen();
-  moire(PATTERN_GRAY);
+  total_times[4] += moire(PATTERN_GRAY);
   delay(1000);
   
   gamby.clearScreen();
-  randomCircles();
+  total_times[5] += randomCircles();
   delay(1000);
   
   gamby.clearScreen();
-  randomRects();
+  total_times[6] += randomRects();
   delay(1000);
   
   gamby.clearScreen();
-  drawSpriteGrid(smiley8x8);
+  total_times[7] += drawSpriteGrid(smiley8x8);
   delay(1000);  
   
   gamby.clearScreen();
-  drawSpriteGrid(smiley8x8, smiley8x8_mask);
+  total_times[8] += drawSpriteGrid(smiley8x8, smiley8x8_mask);
   delay(1000);
+  
+  if(!(runs%10)) {
+    Serial.print("Total times so far: ");
+    for(int i; i<9; i++) {
+      Serial.print(total_times[i],DEC);
+      Serial.print(", ");
+    }
+    Serial.print("\n");
+  }
   
   runs++;
 }
 
 
-void setPixelTest1() {
+unsigned long setPixelTest1() {
   byte r,c; 
   Serial.print("setPixel(), explicit:\t");
   startTime = micros();
@@ -90,11 +100,13 @@ void setPixelTest1() {
     }
   }
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void setPixelTest2() {
+unsigned long setPixelTest2() {
   byte r,c; 
   Serial.print("setPixel(), pattern:\t");
   startTime = micros();
@@ -105,11 +117,13 @@ void setPixelTest2() {
     }
   }
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void concentricCircles1() {
+unsigned long concentricCircles1() {
   int p, r;
   Serial.print("concentric discs:\t");
   startTime = micros();
@@ -119,11 +133,13 @@ void concentricCircles1() {
     gamby.disc(NUM_COLUMNS >> 1, NUM_ROWS >> 1, r);
   }    
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void concentricCircles2() {
+unsigned long concentricCircles2() {
   int p, r;
   gamby.drawPattern = 0xffff;
   Serial.print("concentric discs:\t");
@@ -132,11 +148,13 @@ void concentricCircles2() {
     gamby.circle(NUM_COLUMNS >> 1, NUM_ROWS >> 1, r);
   }    
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void moire(int pat) {
+unsigned long moire(int pat) {
   int i;
   gamby.drawPattern = pat;
   Serial.print("moire, patterned:\t");
@@ -158,11 +176,13 @@ void moire(int pat) {
     gamby.line(NUM_COLUMNS >> 1, NUM_ROWS >> 1,0,i);
   gamby.update();
 
-  Serial.println(micros() - startTime, DEC);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void randomCircles() {
+unsigned long randomCircles() {
   int p = PATTERN_BLACK;
   int x, y, r;
   Serial.print("randomCircles:\t\t");
@@ -178,12 +198,14 @@ void randomCircles() {
     p = p < 14 ? p+1 : 0;
   }
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
   gamby.drawPattern=0xFFFF;
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void randomRects() {
+unsigned long randomRects() {
   int p = PATTERN_BLACK;
   int x, y, x2, y2;
   Serial.print("randomRects:\t\t");
@@ -200,12 +222,14 @@ void randomRects() {
     p = p < 14 ? p+1 : 0;
   }
   gamby.update();
-  Serial.println(micros() - startTime, DEC);
   gamby.drawPattern=0xFFFF;
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void drawSpriteGrid(const prog_uchar *spriteIdx) {
+unsigned long drawSpriteGrid(const prog_uchar *spriteIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, plain:\t");
@@ -216,11 +240,13 @@ void drawSpriteGrid(const prog_uchar *spriteIdx) {
     }
   }
   gamby.update();
-  Serial.println(micros() - startTime);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
 
-void drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
+unsigned long drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, masked:\t");
@@ -231,6 +257,8 @@ void drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
     }
   }
   gamby.update();
-  Serial.println(micros() - startTime);
+  startTime = micros() - startTime;
+  Serial.println(startTime, DEC);
+  return startTime;
 }
 
