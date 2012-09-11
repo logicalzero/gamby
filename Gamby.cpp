@@ -28,14 +28,10 @@
  ****************************************************************************/
 
 /**
- * Swap: Used in line drawing, assumes a variable named 'swap' has been
- * declared, and it is a type compatible with both 'x' and 'y'.
- * Just makes the code a little cleaner-looking.
- * NOTE: NOT REALLY A SINGLE STATEMENT; NEEDS TO BE CALLED FROM WITHIN 
- * CURLY BRACKETS.
+ * Swap: Used in line drawing, assumes a and b are of XOR-able type
+ * thanks to http://graphics.stanford.edu/~seander/bithacks.html#SwappingValuesXOR
  */
-#define SWAP(x,y) swap=x; x=y; y=swap
-
+#define SWAP(a,b) (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
 
 /**
  * Macros to put LCD into 'data' or 'command' mode (i.e. setting CS and RS).
@@ -972,9 +968,6 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // A variation of Bresenham's line algorithm, cribbed from Wikipedia
   // See: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
 
-  // The SWAP macro uses this variable. Don't remove/rename.
-  int swap;
-
   // My addition: use simpler method if line is horizontal (y0==y1)
   if (y0 == y1) {
     // make sure x0 is smaller than x1
@@ -1144,9 +1137,6 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
  * @param y2: The vertical position of the box's opposite corner
  */
 void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
-  // The SWAP macro uses this variable. Don't remove/rename.
-  int swap;
-
   // Make sure Xs and Ys are ordered
   if (x1 > x2) {
     SWAP(x1,x2);
@@ -1172,9 +1162,6 @@ void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
  * @param y2: The vertical position of the rectangle's opposite corner
  */
 void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
-  // The SWAP macro uses this variable. Don't remove/rename.
-  int swap;
-
   // Make sure Xs and Ys are ordered
   if (x1 > x2) {
     SWAP(x1,x2);
