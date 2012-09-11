@@ -119,58 +119,19 @@
 
 #define PATTERN_WHITE           0x0000
 #define PATTERN_BLACK           0xffff
-#define PATTERN_GRAY            0x5a5a  // B0101
-                                        //  1010
-                                        //  0101
-                                        //  1010
-#define PATTERN_DK_GRAY         0xfaf5        // B1111
-                                              //  1010
-                                              //  1111
-                                              //  0101
-#define PATTERN_LT_GRAY         0x050a  // B0000
-                                        //  0101
-                                        //  0000
-                                        //  1010
-#define PATTERN_DK_L_DIAGONAL   0xedb7        // B1110
-                                              //  1101
-                                              //  1011
-                                              //  0111
-#define PATTERN_LT_L_DIAGONAL   0x1248  // B0001
-                                        //  0010
-                                        //  0100
-                                        //  1000
-#define PATTERN_DK_R_DIAGONAL   0x7bde        // B0111
-                                              //  1011
-                                              //  1101
-                                              //  1110
-#define PATTERN_LT_R_DIAGONAL   0x8421  // B1000
-                                        //  0100
-                                        //  0010
-                                        //  0001
-#define PATTERN_DK_GRID_SOLID   0xeeef        // B1110
-                                              //  1110
-                                              //  1110
-                                              //  1111
-#define PATTERN_LT_GRID_SOLID   0x1110  // B0001
-                                        //  0001
-                                        //  0001
-                                        //  0000
-#define PATTERN_DK_GRID_DOTS    0xfafa        // B1111
-                                              //  1010
-                                              //  1111
-                                              //  1010
-#define PATTERN_LT_GRID_DOTS    0x0505  // B0000
-                                        //  0101
-                                        //  0000
-                                        //  0101
-#define PATTERN_CHECKER         0x33cc        // B0011
-                                              //  0011
-                                              //  1100
-                                              //  1100
-#define PATTERN_CHECKER_INV     0xcc33  // B1100
-                                        //  1100
-                                        //  0011
-                                        //  0011
+#define PATTERN_GRAY            0x5a5a  // B0101101001011010
+#define PATTERN_DK_GRAY         0xfaf5  // B1111101011110101
+#define PATTERN_LT_GRAY         0x050a  // B0000010100001010
+#define PATTERN_DK_L_DIAGONAL   0xedb7  // B1110110110110111
+#define PATTERN_LT_L_DIAGONAL   0x1248  // B0001001001001000
+#define PATTERN_DK_R_DIAGONAL   0x7bde  // B0111101111011110
+#define PATTERN_LT_R_DIAGONAL   0x8421  // B1000010000100001
+#define PATTERN_DK_GRID_SOLID   0xeeef  // B1110111011101111
+#define PATTERN_LT_GRID_SOLID   0x1110  // B0001000100010000
+#define PATTERN_DK_GRID_DOTS    0xfafa  // B1111101011111010
+#define PATTERN_LT_GRID_DOTS    0x0505  // B0000010100000101
+#define PATTERN_CHECKER         0x33cc  // B0011001111001100
+#define PATTERN_CHECKER_INV     0xcc33  // B1100110000110011
 
 
 /****************************************************************************
@@ -325,8 +286,8 @@ class GambyGraphicsMode: public GambyBase {
   void updateBlock(byte, byte);
   void drawHline(int, int, int);
   void drawVline(int, int, int);
-  void plot4points(const int &, const int &, const int &, const int &);
-  void plot8points(const int &, const int &, const int &, const int &);
+  void plot4points(int, int, int, int);
+  void plot8points(int, int, int, int);
 
 
 };

@@ -28,10 +28,13 @@
  ****************************************************************************/
 
 /**
- * Swap: Used in line drawing, assumes a and b are of XOR-able type
- * thanks to http://graphics.stanford.edu/~seander/bithacks.html#SwappingValuesXOR
+ * Swap: Used in line drawing, assumes a variable named 'swap' has been
+ * declared, and it is a type compatible with both 'x' and 'y'.
+ * Just makes the code a little cleaner-looking.
+ * NOTE: NOT REALLY A SINGLE STATEMENT; NEEDS TO BE CALLED FROM WITHIN 
+ * CURLY BRACKETS.
  */
-#define SWAP(a,b) (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
+#define SWAP(x,y) swap=x; x=y; y=swap
 
 
 /**
@@ -1041,7 +1044,13 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
   int y = 0;
 
   if (radius > 0) { 
-    while (x > y) {
+    // The following while loop may altered to 'while (x > y)' for a
+    // performance benefit, as long as a call to 'plot4points' follows
+    // the body of the loop. This allows for the elimination of the
+    // '(x != y') test in 'plot8points', providing a further benefit.
+    //
+    // For the sake of clarity, this is not shown here.
+    while (x >= y) {
       plot8points(cx, cy, x, y);
  
       error += y;
@@ -1057,10 +1066,7 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
           error -= x;
           error -= x;
       }
-    plot4points(cx, cy, x, y);
     }
-  } else {
-    setPixel(cx, cy, true);
   }
 }
 
@@ -1068,9 +1074,10 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
 /**
  * plot8points(): Draws eight points. Used by the circle drawing.
  */
-void GambyGraphicsMode::plot8points(const int &cx, const int &cy, const int &x, const int &y) {
+void GambyGraphicsMode::plot8points(int cx, int cy, int x, int y) {
   plot4points(cx, cy, x, y);
-  plot4points(cx, cy, y, x);
+  if (x != y) 
+    plot4points(cx, cy, y, x);
 }
  
 
@@ -1078,7 +1085,7 @@ void GambyGraphicsMode::plot8points(const int &cx, const int &cy, const int &x, 
  * Draws four points. Used by the circle drawing.
  * The 4th point can be omitted if the radius is known to be nonzero.
  */
-void GambyGraphicsMode::plot4points(const int &cx, const int &cy, const int &x, const int &y) {
+void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
   setPixel(cx + x, cy + y);
   if (x != 0)
     setPixel(cx - x, cy + y);
@@ -1102,11 +1109,11 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
   int y = 0;
 
   if (radius > 0) {
-    while (x > y) {
+    while (x >= y) {
 
       // TODO: This can probably be optimized.
-      drawVline(cy-y, cy+y, cx+x);
-      drawVline(cy-y, cy+y, cx-x);
+      drawHline(cx-x, cx+x, cy+y);
+      drawHline(cx-x, cx+x, cy-y);
       drawHline(cx-y, cx+y, cy+x);
       drawHline(cx-y, cx+y, cy-x);
 
@@ -1124,7 +1131,6 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
           error -= x;
       }
     }
-    rect(cx-x,cy-y, cx+x, cy+y);
   }
 }
 
@@ -1138,6 +1144,9 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
  * @param y2: The vertical position of the box's opposite corner
  */
 void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
+  // The SWAP macro uses this variable. Don't remove/rename.
+  int swap;
+
   // Make sure Xs and Ys are ordered
   if (x1 > x2) {
     SWAP(x1,x2);
@@ -1163,6 +1172,9 @@ void GambyGraphicsMode::box(int x1, int y1, int x2, int y2) {
  * @param y2: The vertical position of the rectangle's opposite corner
  */
 void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
+  // The SWAP macro uses this variable. Don't remove/rename.
+  int swap;
+
   // Make sure Xs and Ys are ordered
   if (x1 > x2) {
     SWAP(x1,x2);
@@ -1188,8 +1200,8 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
  * @param y: the common y coordinate
  */
  void GambyGraphicsMode::drawHline(int x1, int x2, int y) {
-  for(;x1<=x2; x1++)
-    setPixel((byte)x1, (byte)y);
+  for(int i=x1; i<=x2; i++)
+    setPixel((byte)i, (byte)y);
 }
 
 /**
@@ -1200,8 +1212,8 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
  * @param x: the common y coordinate
  */
  void GambyGraphicsMode::drawVline(int y1, int y2, int x) {
-  for (; y1<=y2; y1++) 
-    setPixel((byte)x, (byte)y1); 
+  for (int i=y1; i<=y2; i++) 
+    setPixel((byte)x, (byte)i); 
 }
 
 /**
