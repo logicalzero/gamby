@@ -1060,6 +1060,8 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
           error -= x;
       }
     }
+  } else {
+    setPixel(cx, cy);
   }
 }
 
@@ -1124,6 +1126,8 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
           error -= x;
       }
     }
+  } else {
+    setPixel(cx, cy);
   }
 }
 
