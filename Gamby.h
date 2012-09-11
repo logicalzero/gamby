@@ -325,8 +325,8 @@ class GambyGraphicsMode: public GambyBase {
   void updateBlock(byte, byte);
   void drawHline(int, int, int);
   void drawVline(int, int, int);
-  void plot4points(int, int, int, int);
-  void plot8points(int, int, int, int);
+  void plot4points(const int &, const int &, const int &, const int &);
+  void plot8points(const int &, const int &, const int &, const int &);
 
 
 };

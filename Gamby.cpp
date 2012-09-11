@@ -1041,13 +1041,7 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
   int y = 0;
 
   if (radius > 0) { 
-    // The following while loop may altered to 'while (x > y)' for a
-    // performance benefit, as long as a call to 'plot4points' follows
-    // the body of the loop. This allows for the elimination of the
-    // '(x != y') test in 'plot8points', providing a further benefit.
-    //
-    // For the sake of clarity, this is not shown here.
-    while (x >= y) {
+    while (x > y) {
       plot8points(cx, cy, x, y);
  
       error += y;
@@ -1063,7 +1057,10 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
           error -= x;
           error -= x;
       }
+    plot4points(cx, cy, x, y);
     }
+  } else {
+    setPixel(cx, cy, true);
   }
 }
 
@@ -1071,10 +1068,9 @@ void GambyGraphicsMode::circle(int cx, int cy, int radius) {
 /**
  * plot8points(): Draws eight points. Used by the circle drawing.
  */
-void GambyGraphicsMode::plot8points(int cx, int cy, int x, int y) {
+void GambyGraphicsMode::plot8points(const int &cx, const int &cy, const int &x, const int &y) {
   plot4points(cx, cy, x, y);
-  if (x != y) 
-    plot4points(cx, cy, y, x);
+  plot4points(cx, cy, y, x);
 }
  
 
@@ -1082,7 +1078,7 @@ void GambyGraphicsMode::plot8points(int cx, int cy, int x, int y) {
  * Draws four points. Used by the circle drawing.
  * The 4th point can be omitted if the radius is known to be nonzero.
  */
-void GambyGraphicsMode::plot4points(int cx, int cy, int x, int y) {
+void GambyGraphicsMode::plot4points(const int &cx, const int &cy, const int &x, const int &y) {
   setPixel(cx + x, cy + y);
   if (x != 0)
     setPixel(cx - x, cy + y);
@@ -1106,11 +1102,11 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
   int y = 0;
 
   if (radius > 0) {
-    while (x >= y) {
+    while (x > y) {
 
       // TODO: This can probably be optimized.
-      drawHline(cx-x, cx+x, cy+y);
-      drawHline(cx-x, cx+x, cy-y);
+      drawVline(cy-y, cy+y, cx+x);
+      drawVline(cy-y, cy+y, cx-x);
       drawHline(cx-y, cx+y, cy+x);
       drawHline(cx-y, cx+y, cy-x);
 
@@ -1128,6 +1124,7 @@ void GambyGraphicsMode::disc(int cx, int cy, int radius) {
           error -= x;
       }
     }
+    rect(cx-x,cy-y, cx+x, cy+y);
   }
 }
 
