@@ -1188,8 +1188,8 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
  * @param y: the common y coordinate
  */
  void GambyGraphicsMode::drawHline(int x1, int x2, int y) {
-  for(int i=x1; i<=x2; i++)
-    setPixel((byte)i, (byte)y);
+  for(;x1<=x2; x1++)
+    setPixel((byte)x1, (byte)y);
 }
 
 /**
@@ -1200,8 +1200,8 @@ void GambyGraphicsMode::rect(int x1, int y1, int x2, int y2) {
  * @param x: the common y coordinate
  */
  void GambyGraphicsMode::drawVline(int y1, int y2, int x) {
-  for (int i=y1; i<=y2; i++) 
-    setPixel((byte)x, (byte)i); 
+  for (; y1<=y2; y1++) 
+    setPixel((byte)x, (byte)y1); 
 }
 
 /**
