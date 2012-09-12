@@ -36,7 +36,6 @@
  */
 #define SWAP(x,y) swap=x; x=y; y=swap
 
-
 /**
  * Macros to put LCD into 'data' or 'command' mode (i.e. setting CS and RS).
  * They make the code a bit more readable.
@@ -48,7 +47,6 @@
 /****************************************************************************
  * 
  ****************************************************************************/
-
 
 byte GambyBase::inputs = 0;
 unsigned int GambyBase::drawMode = NORMAL;
@@ -726,6 +724,45 @@ void GambyBlockMode::update(byte x1, byte y1, byte x2, byte y2) {
   setPos(0,0);
   currentPage = 0;
   currentColumn = 0;
+}
+
+
+/**
+ * Draw a filled rectangle.
+ *
+ * @param x1 The left edge of the rectangle, 0 to 23.
+ * @param y1 The top edge of the rectangle, 0 to 15.
+ * @param x2 The right edge of the rectangle, x1 to 24.
+ * @param y2 The bottom edge of the rectangle, y1 to 15.
+ */
+void GambyBlockMode::rect(byte x1, byte y1, byte x2, byte y2, byte block) {
+  byte x,y;
+  for (y=y1; y<=y2; y++)
+    for (x=x1; x<=x2; x++)
+      setBlock(x1, y1, block);
+  update(x1, y1, x2, y2);
+}
+
+
+/**
+ * Draw an unfilled rectangle.
+ *
+ * @param x1 The left edge of the box, 0 to 23.
+ * @param y1 The top edge of the box, 0 to 15.
+ * @param x2 The right edge of the box, x1 to 24.
+ * @param y2 The bottom edge of the box, y1 to 15.
+ */
+void GambyBlockMode::box(byte x1, byte y1, byte x2, byte y2, byte block) {
+  byte x,y;
+  for (x=x1; x<=x2; x++) {
+    setBlock(x,y1,block);
+    setBlock(x,y2,block);
+  }
+  for (y=y1+1; y<y2; y++) {
+    setBlock(x1,y,block);
+    setBlock(x2,y,block);
+  }
+  update(x1, y1, x2, y2);
 }
 
 

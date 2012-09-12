@@ -241,6 +241,8 @@ class GambyBlockMode: public GambyBase {
   void drawBlock(byte, byte, byte);
   byte getBlock(byte, byte);
   void setBlock(byte, byte, byte);
+  void box(byte, byte, byte, byte, byte);
+  void rect(byte, byte, byte, byte, byte);
   void update();
   void update(byte, byte, byte, byte);
 
