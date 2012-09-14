@@ -76,12 +76,15 @@
 #define LAST_COL                NUM_COLUMNS - 1
 
 // Text drawing modes
-#define NORMAL			0    // dark text, light background
-#define INVERSE			0xFF // light text, dark background
+#define TEXT_NORMAL    		0    // dark text, light background
+#define TEXT_INVERSE	       	0xFF // light text, dark background
+#define TEXT_UNDERLINE		B10000000
+#define TEXT_STRIKETHRU		B00001000
 
 
 // draw mode flags
 // Maybe all the flags should be merged into an int.
+#define DRAW_NORMAL             0
 #define DRAW_BLACK_TRANSPARENT  B00001000
 #define DRAW_WHITE_TRANSPARENT  B00010000
 #define DRAW_NONE               B00011000  // Both colors transparent equals none.
@@ -227,7 +230,6 @@ class GambyBase {
   void drawIcon(const prog_uchar *);
 
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
-  static unsigned int drawMode;  /**< The current drawing mode. */
 
   const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
 
@@ -259,8 +261,9 @@ class GambyTextMode: public GambyBase {
   void newline();
   void scroll(int);
 
-  byte wrapMode;            /**< How GAMBY should behave when text goes beyond the right margin. */
-  byte scrollMode;          /**< How GAMBY should behave when text goes beyond the bottom of the screen. */
+  static byte wrapMode;   /**< How GAMBY should behave when text goes beyond the right margin. */
+  static byte scrollMode; /**< How GAMBY should behave when text goes beyond the bottom of the screen. */
+  static byte drawMode;
 
  private:
   int offset;
@@ -318,6 +321,7 @@ class GambyGraphicsMode: public GambyBase {
   void drawText_P(int, int, const char *);
 
   static unsigned int drawPattern; /**< The 4x4 pixel pattern to use when drawing. */
+  static byte drawMode;  /**< The current drawing mode. */
 
   byte offscreen[NUM_COLUMNS][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
   byte dirtyBits[NUM_DIRTY_COLUMNS]; /**< A lower-resolution grid that stores what regions of the screen need to be redrawn */

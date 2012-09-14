@@ -46,7 +46,6 @@
  ****************************************************************************/
 
 byte GambyBase::inputs = 0;
-unsigned int GambyBase::drawMode = NORMAL;
 
 
 /**
@@ -312,6 +311,10 @@ int GambyBase::getTextWidth_P(const char *s) {
 /****************************************************************************
  * 
  ****************************************************************************/
+
+byte GambyTextMode::drawMode = TEXT_NORMAL;
+byte GambyTextMode::scrollMode = SCROLL_NORMAL;
+byte GambyTextMode::wrapMode = WRAP_CHAR;
 
 /**
  * Constructor.
@@ -768,6 +771,7 @@ void GambyBlockMode::box(byte x1, byte y1, byte x2, byte y2, byte block) {
  ****************************************************************************/
 
 unsigned int GambyGraphicsMode::drawPattern;
+byte GambyGraphicsMode::drawMode = DRAW_NORMAL;
 
 /**
  * Constructor. Runs once when the mode's instance is created, initializing
@@ -896,12 +900,12 @@ void GambyGraphicsMode::update() {
  * @param r: The row (page) to update
  */
 void GambyGraphicsMode::updateBlock(byte c, byte r) {
-  int i;
-  int x = c << 3;
-  setPos(x, r); // setPos() should already be defined.
+  byte i;
+  c = c << 3;
+  setPos(c, r); // setPos() should already be defined.
   DATA_MODE();
   for (i = 0; i < 8; i++) {
-    sendByte(offscreen[x + i][r]);
+    sendByte(offscreen[c + i][r]);
   }
 }
 
@@ -950,8 +954,7 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite) {
         this_byte = ~pgm_read_byte_near(sprite);
         this_bit=0;
       }
-      byte b = (this_byte << this_bit) & B10000000;
-      setPixel(x+i,y+j,b);
+      setPixel(x+i,y+j,(this_byte << this_bit) & B10000000);
       this_bit++;
     }
   }
@@ -985,7 +988,6 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, con
         mask_byte = ~pgm_read_byte_near(++mask);
         this_bit=0;
       }
-      //byte b = (this_byte << this_bit) & B10000000;
       if (!((mask_byte << this_bit) & B10000000))
         setPixel(x+i,y+j, (this_byte << this_bit) & B10000000);
         this_bit++;
