@@ -501,7 +501,7 @@ void GambyTextMode::println_P(const char *s) {
 void GambyTextMode::clearLine () {
   byte j;
   DATA_MODE();
-  for (j = currentColumn; j <= LAST_COL; j++) {
+  for (j = currentColumn; j <= LAST_COLUMN; j++) {
     sendByte(0);
   }
   // restore previous column.
@@ -962,17 +962,57 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite) {
 
 
 /**
+ * drawSprite (plain version, with frame number): Draw a bitmap graphic.
+ * The data should contain more than one frame; additional bitmap data
+ * (minus the dimensions) should simply be appended to the first frame.
+ *
+ * @param x  The sprite's horizontal position
+ * @param y  The sprite's vertical position
+ * @param sprite  The address of the sprite in `PROGMEM` (e.g. the 
+ *     constant's name) 
+ * @param frame The frame number to draw (0 to (number of frames)-1)
+ */
+void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, byte frame) {
+  unsigned int w = pgm_read_byte_near(sprite);
+  unsigned int h = pgm_read_byte_near(++sprite);
+
+  byte this_byte;
+  byte this_bit=8;
+
+  // TODO: This can probably be optimized.
+  if (frame > 0) {
+    unsigned int pixelsPerFrame = h * w;
+    // Round up to the nearest 8 bits
+    sprite += ((pixelsPerFrame & 0x7 ? ((pixelsPerFrame &  0xfff8) + 8) : pixelsPerFrame) >> 3) * frame;
+  }
+
+  for (byte i=0; i<w; i++) {
+    for (byte j=h; j>0; j--) {
+      if (this_bit == 8) {
+        sprite++;
+        this_byte = ~pgm_read_byte_near(sprite);
+        this_bit=0;
+      }
+      setPixel(x+i,y+j,(this_byte << this_bit) & B10000000);
+      this_bit++;
+    }
+  }
+}
+
+
+
+/**
  * Masked version: a second sprite is used as a 'mask' to make portions
  * of the first transparent; the foreground sprite will only be drawn where
  * the mask has white pixels. The mask must be the same dimensions as the
  * foreground sprite. 
  *
+ * @param x: The sprite's horizontal position
+ * @param y: The sprite's vertical position
  * @param sprite: The address of the foreground sprite in `PROGMEM` 
  *     (e.g. the constant's name) 
  * @param mask: The address of the mask sprite in `PROGMEM` 
  *     (e.g. the constant's name) 
- * @param x: The sprite's horizontal position
- * @param y: The sprite's vertical position
  */
 void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, const prog_uchar *mask) {
   byte w = pgm_read_byte_near(sprite);
@@ -981,6 +1021,59 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, con
   mask++;
   byte this_byte, mask_byte;
   byte this_bit=8;
+  for (byte i=0; i<w; i++) {
+    for (byte j=h; j>0; j--) {
+      if (this_bit == 8) {
+        this_byte = ~pgm_read_byte_near(++sprite);
+        mask_byte = ~pgm_read_byte_near(++mask);
+        this_bit=0;
+      }
+      if (!((mask_byte << this_bit) & B10000000))
+        setPixel(x+i,y+j, (this_byte << this_bit) & B10000000);
+        this_bit++;
+    }
+  }
+}
+
+/**
+ * drawSprite (masked multi-frame version): a second sprite is used as a 
+ * 'mask' to make portions of the first transparent; the foreground sprite
+ * will only be drawn where the mask has white pixels. The mask must be 
+ * the same dimensions as the foreground sprite. The sprite and/or mask
+ * should should contain more than one frame; additional bitmap data
+ * (minus the dimensions) should simply be appended to the first frame.
+ * A single-frame sprite can be used for either; just use frame 0.
+ *
+ * @param x The sprite's horizontal position
+ * @param y The sprite's vertical position
+ * @param sprite The address of the foreground sprite in `PROGMEM` 
+ *     (e.g. the constant's name) 
+ * @param frame The foreground image's frame number to draw 
+ *     (0 to (number of frames)-1)
+ * @param mask The address of the mask sprite in `PROGMEM` 
+ *     (e.g. the constant's name) 
+ * @param maskFrame The mask image's frame number to draw 
+ *     (0 to (number of frames)-1)
+ */
+void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, byte frame, 
+				   const prog_uchar *mask, byte maskFrame) {
+  byte w = pgm_read_byte_near(sprite);
+  byte h = pgm_read_byte_near(++sprite);
+
+  mask++;
+  byte this_byte, mask_byte;
+  byte this_bit=8;
+
+  // TODO: This can probably be optimized.
+  if (frame > 0 || maskFrame > 0) {
+    // Frame size in bits
+    unsigned int frameSize = h * w;
+    // Convert frame size to bytes, rounding up
+    frameSize =  (frameSize & 0x7 ? ((frameSize &  0xfff8) + 8) : frameSize) >> 3;
+    sprite += frame * frameSize;
+    mask += maskFrame * frameSize;
+  }
+
   for (byte i=0; i<w; i++) {
     for (byte j=h; j>0; j--) {
       if (this_bit == 8) {

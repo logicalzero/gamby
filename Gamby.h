@@ -53,10 +53,6 @@
 //
 // ###########################################################################
 
-// Values to make code a little more readable
-#define POST_COMMAND_DELAY	100 //50	// microseconds; arbitrarily chosen
-#define BETWEEN_BIT_DELAY	5
-
 #define CLEAR			255		// Use w/ setNLineInversion()
 
 #define COMMAND                 0
@@ -72,8 +68,10 @@
 #define NUM_BLOCK_COLUMNS       NUM_COLUMNS / 4
 #define NUM_BLOCK_ROWS          NUM_PAGES * 2
 
-#define FIRST_COL               0
-#define LAST_COL                NUM_COLUMNS - 1
+#define FIRST_COLUMN            0
+#define LAST_COLUMN             NUM_COLUMNS - 1
+#define FIRST_ROW               0
+#define LAST_ROW                NUM_ROWS - 1
 
 // Text drawing modes
 #define TEXT_NORMAL    		0    // dark text, light background
@@ -98,7 +96,7 @@
 #define WRAP_WORD		B00000100    // text breaks on whitespace. Slowest. Temporarily removed.
 
 // Screen scrolling modes. NORMAL is marginally slower than the other two.
-#define SCROLL_NONE		B00001000    // text goes off the bottom of the screen.
+#define SCROLL_NONE		B00001000    // text goes off the bottom of the screen. Not currently enabled.
 #define SCROLL_NORMAL		B00010000    // the entire display scrolls vertically when the bottom of the display is reached.
 #define SCROLL_WRAP		B00100000    // Text resumes on the top line of the display after reaching the bottom.
 
@@ -316,6 +314,8 @@ class GambyGraphicsMode: public GambyBase {
 
   void drawSprite(byte, byte, const prog_uchar *);
   void drawSprite(byte, byte, const prog_uchar *, const prog_uchar *);
+  void drawSprite(byte, byte, const prog_uchar *, byte);
+  void drawSprite(byte, byte, const prog_uchar *, byte, const prog_uchar *, byte);
 
   void drawText(int, int, char *);
   void drawText_P(int, int, const char *);
