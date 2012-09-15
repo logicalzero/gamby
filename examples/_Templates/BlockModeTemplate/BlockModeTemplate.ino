@@ -16,8 +16,8 @@ by David R. Stokes (gamby@logicalzero.com) 2012-08-28
 // or all of the individual blocks, but a palette can have no more than 16 
 // blocks in it. Typically, you will have only one per sketch, but it is
 // possible to create more than one and switch between them.
-PROGMEM prog_uint16_t blocks[] = {
-    0x0000, //  0 All 'white'
+PROGMEM prog_uint16_t palette[] = {
+    0x0000, //  0 All 'white' (block 0 should almost always be 0x0000) 
     0xffff, //  1 All 'black'
     0x5a5a, //  2 50% gray dither
     0xfaf5, //  3 75% gray dither
