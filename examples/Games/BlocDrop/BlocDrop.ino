@@ -121,7 +121,7 @@ void loop() {
           movePiece(x+1, y, dir);
         else if (gamby.inputs & DPAD_DOWN)
           timeToDrop = 0;
-        else if (gamby.inputs & BUTTON_ANY)
+        else if (gamby.inputs & (BUTTON_ANY | DPAD_UP))
           rotate(ROTATE_CW);
         
         lastInputTime = millis() + INPUT_DELAY;
@@ -184,8 +184,8 @@ void startGame() {
 // to be added.
 //
 void gameOver() {
-  // TODO: Draw the 'GAME OVER' text
   playing = false;
+  showGameOver();
  }
 
 
@@ -343,4 +343,3 @@ byte checkCompleteRows() {
   gamby.update(1,0,WELL_WIDTH-1,WELL_BOTTOM-1);
   return cleared;
 }
-
