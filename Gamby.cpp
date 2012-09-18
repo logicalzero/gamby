@@ -249,6 +249,24 @@ void GambyBase::drawIcon(const prog_uchar *icon) {
   }
 }
 
+/** 
+ * Draw an 8px high icon at the current position on screen. The icon itself
+ * is stored in PROGMEM.
+ *
+ * @param icon  The icon's location in `PROGMEM` (e.g. the name of the 
+ *    `PROGMEM` constant).
+ * @param frame  The frame number, 0 to (total frames)-1
+ */
+void GambyBase::drawIcon(const prog_uchar *icon, byte frame) {
+  DATA_MODE();
+  byte w = pgm_read_byte_near(icon);
+  icon += w * frame;
+  currentColumn += w;
+  for (; w > 0; w--) {
+    sendByte(pgm_read_byte_near(++icon));
+  }
+}
+
 
 /** Retrieves the width of a given character.
  *

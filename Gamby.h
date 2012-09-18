@@ -226,6 +226,7 @@ class GambyBase {
   int getTextWidth(char *);
   int getTextWidth_P(const char *);
   void drawIcon(const prog_uchar *);
+  void drawIcon(const prog_uchar *, byte);
 
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
 
