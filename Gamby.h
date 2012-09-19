@@ -252,7 +252,23 @@ class GambyTextMode: public GambyBase {
   void setColumn(byte);
   void drawChar(char);
   void print(char *);
+  void print(long, uint8_t = 10);
+  void print(unsigned long, uint8_t = 10);
+  void print(int, uint8_t = 10);
+  void print(unsigned int, uint8_t = 10);
+  void print(unsigned char, uint8_t = 10);
+  void print(char);
+  void print(double, uint8_t = 2);
+  void print(float, uint8_t = 2);
   void println(char *);
+  void println(long, uint8_t = 10);
+  void println(unsigned long, uint8_t = 10);
+  void println(int, uint8_t = 10);
+  void println(unsigned int, uint8_t = 10);
+  void println(unsigned char, uint8_t = 10);
+  void println(char);
+  void println(double, uint8_t = 2);
+  void println(float, uint8_t = 2);
   void print_P(const char *);
   void println_P(const char *);
   void clearLine();
@@ -265,6 +281,8 @@ class GambyTextMode: public GambyBase {
   static byte drawMode;
 
  private:
+  void printNumber(unsigned long, uint8_t = 10);
+  void printFloat(double, uint8_t = 2);
   int offset;
 
 };

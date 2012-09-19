@@ -40,6 +40,8 @@
 #define COMMAND_MODE() PORTB = PORTB & ~(BIT_RS | BIT_CS);
 #define DATA_MODE()    PORTB = (PORTB & ~BIT_CS) | BIT_RS;
 
+#define IDLE() 
+
 
 /****************************************************************************
  * 
@@ -510,6 +512,143 @@ void GambyTextMode::println_P(const char *s) {
   newline();
 }
 
+
+/**
+ * Print a numeric value
+ *
+ * @param n  Any whole-number numeric value
+ * @param base The 'base' to use (`BIN`, `OCT`, `DEC`, or `HEX`)
+ */
+void GambyTextMode::print(long n, uint8_t base) {
+  if (base == 10 && n < 0) {
+      drawChar('-');
+      n = -n;
+  }
+  printNumber((unsigned long) n, base);
+}
+
+void GambyTextMode::print(unsigned long n, uint8_t base) {
+  printNumber(n, base);
+}
+
+void GambyTextMode::print(int n, uint8_t base) {
+  print((long) n, base);
+}
+
+void GambyTextMode::print(unsigned int n, uint8_t base) {
+  printNumber((unsigned long) n, base);
+}
+
+void GambyTextMode::print(unsigned char n, uint8_t base) {
+  printNumber((unsigned long) n, base);
+}
+
+void GambyTextMode::print(char c) {
+  drawChar(c);
+}
+
+void GambyTextMode::print(double number, uint8_t digits) {
+  printFloat(number, digits);
+}
+
+void GambyTextMode::print(float number, uint8_t digits) {
+  printFloat((double)number, digits);
+}
+
+void GambyTextMode::println(long n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyTextMode::println(unsigned long n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyTextMode::println(int n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyTextMode::println(unsigned int n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyTextMode::println(unsigned char n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyTextMode::println(char c) {
+  drawChar(c);
+  newline();
+}
+
+void GambyTextMode::println(double number, uint8_t digits) {
+  printFloat(number, digits);
+  newline();
+}
+
+void GambyTextMode::println(float number, uint8_t digits) {
+  printFloat((double)number, digits);
+  newline();
+}
+
+
+/**
+ * Private. Do the actual printing of a non-decimal number.
+ * Separated from print() to avoid ambiguous overloading.
+ * 
+ */
+void GambyTextMode::printNumber(unsigned long n, uint8_t base) {
+  // TODO: The Arduino standard library doesn't use itoa(), see if what it
+  // does is faster.
+  char buf[10];
+  print(itoa(n, buf, base));
+}
+
+
+/**
+ * Private. Print a decimal number.
+ * Separated from print() to avoid ambiguous overloading.
+ * 
+ */
+void GambyTextMode::printFloat(double number, uint8_t digits) {
+  // This is based on code lifted from the Arduino's standard library
+  // hardware/arduino/cores/arduino/Print.cpp
+  // Comments are (largely) from original code
+  
+  // Handle negative numbers
+  if (number < 0.0) {
+    drawChar('-');
+    number = -number;
+  }
+
+  // Round correctly so that print(1.999, 2) prints as "2.00"
+  double rounding = 0.5;
+  for (uint8_t i=0; i<digits; ++i)
+    rounding /= 10.0;
+  
+  number += rounding;
+
+  // Extract the integer part of the number and print it
+  unsigned long int_part = (unsigned long)number;
+  double remainder = number - (double)int_part;
+  printNumber(int_part);
+
+  // Print the decimal point, but only if there are digits beyond
+  if (digits > 0)
+    drawChar('.');
+
+  // Extract digits from the remainder one at a time
+  while (digits-- > 0) {
+    remainder *= 10.0;
+    int toPrint = int(remainder);
+    print(toPrint);
+    remainder -= toPrint; 
+  } 
+}
 
 /**
  * Clears the current line from the current column to the right edge of the

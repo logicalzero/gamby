@@ -115,10 +115,7 @@ void drawScreen() {
   // The score
   gamby.setPos(0,7);
   gamby.print("Score: ");
-  
-  // Gamby's print() doesn't do numbers, so turn the score into a string first.
-  char buf[4];
-  gamby.print(itoa(sequenceLength-1, buf, 10));
+  gamby.print(sequenceLength-1, DEC);
 }
 
 
@@ -232,7 +229,6 @@ boolean getSequence() {
 // Show the 'game over' screen and pause before restarting.
 void gameOver() {
   playing = false;
-  char buf[4];
   
   gamby.clearDisplay();
   gamby.setPos(0,3);
@@ -242,11 +238,11 @@ void gameOver() {
   
   gamby.setPos(14,5);
   gamby.print("Your score: ");
-  gamby.print(itoa(sequenceLength-1, buf, 10));
+  gamby.print(sequenceLength-1, DEC);
   
   gamby.setPos(16,6);
   gamby.print("High score: ");
-  gamby.print(itoa(highScore, buf, 10));
+  gamby.print(highScore, DEC);
   
   if (sequenceLength - 1 > highScore) {
     gamby.setPos(4,2);
