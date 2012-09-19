@@ -659,7 +659,7 @@ void GambyTextMode::clearLine () {
   byte j;
   DATA_MODE();
   for (j = currentColumn; j <= LAST_COLUMN; j++) {
-    sendByte(0);
+    sendByte(drawMode);
   }
   // restore previous column.
   sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
