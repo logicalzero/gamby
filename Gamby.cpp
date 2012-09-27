@@ -4,21 +4,25 @@
 
 // Major to-do items:
 // ~~~~~~~~~~~~~~~~~~
-// TODO: Replace all bitRead()/bitWrite() calls w/ normal bitwise ops --
-//    but only after everything works. Doesn't seem to have much of a benefit,
-//    though... tests don't show a signficant difference, but may be wrong.
-// TODO: Get rid of weird and unnecessary typecasting throughout the code, 
+// TODO: For porting to other Arduinos (e.g. Leonardo, MEGA), move all direct
+//    port manipulation of LCD to GambyBase::sendByte() and maybe 
+//    GambyBase::init(); abstract what can't be moved with appropriately named
+//    macros (as was done for COMMAND_MODE and DATA_MODE) to keep it all 
+//    abstracted.
+// TODO: Locate and remove any remaining weird and unnecessary typecasting, 
 //    which was originally put in during testing and forgotten about.
 // TODO: Refactor buffer in GambyGraphicsMode/GambyBlockMode to allocate
 //    memory dynamically, allowing for a smaller display area to save RAM,
 //    adding a lightweight score display, et cetera. Longer-term.
-// TODO: Make GambyTextMode the base class? Partial display areas in other
-//    two modes could use the basic text drawing.
+// TODO: Move most text drawing into GambyBase class for use in other modes.
+//    Maybe make GambyTextMode the base class? Requires renaming
+//    GambyTextMode::drawMode 
+// TODO: Modify the various GambyTextMode::println() methods to call
+//    printNumber()/printFloat() directly, reducing the extra stack depth.
 
 // Other items:
 // ~~~~~~~~~~~~
-// TODO: Word-wrap in GambyTextMode. 
-
+// TODO: Fix (and enable) word-wrap in GambyTextMode. 
 // TODO: Consider doing something to support high-bit ASCII in a reasonable
 //    way. Possibly do something to skip over symbols, just use letters.
 
@@ -40,14 +44,13 @@
 #define COMMAND_MODE() PORTB = PORTB & ~(BIT_RS | BIT_CS);
 #define DATA_MODE()    PORTB = (PORTB & ~BIT_CS) | BIT_RS;
 
-#define IDLE() 
-
 
 /****************************************************************************
  * 
  ****************************************************************************/
 
 byte GambyBase::inputs = 0;
+byte GambyBase::textDraw = TEXT_NORMAL;
 
 
 /**
@@ -234,6 +237,16 @@ void GambyBase::setPos(byte col, byte line) {
   currentPage = line;
 }
 
+/**
+ * Set the horizontal position of the cursor.
+ *
+ * @param column  The horizontal position on screen (0-95).
+ */
+void GambyBase::setColumn (byte column) {
+  sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), 
+	      B00001111 & column); // & to mask out high bits
+}
+
 
 /** 
  * Draw an 8px high icon at the current position on screen. The icon itself
@@ -327,12 +340,300 @@ int GambyBase::getTextWidth_P(const char *s) {
 }
 
 
+/**
+ * Move the cursor to the first column of the next line, scrolling the
+ * display if necessary.
+ * 
+ */
+void GambyBase::newline() {
+  currentPage++;
+  if (currentPage >= NUM_PAGES) {
+      currentPage = 0;
+  }
+  sendCommand(SET_PAGE_ADDR | currentPage);
+  sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
+  currentColumn = 0;
+}
+
+
+/**
+ * Draw a character at the current screen position.
+ *
+ * @param c: is the ASCII character to draw.
+ */
+void GambyBase::drawChar(char c) {
+
+  // Newline character. Bail.
+  if (c == '\n') {
+    newline();
+    return;
+  }
+
+  DATA_MODE();
+
+  if (c == '\t') {
+    // If the tab will exceed the screen width, new line:
+    if (currentColumn + 8 > NUM_COLUMNS) {
+      newline();
+      return;
+    }
+    // else, scootch in.
+    for (byte t = (((currentColumn + 1) & B11111000) + 8) - currentColumn; t > 0; t--)
+      sendByte(textDraw);
+    currentColumn = ((currentColumn + 1) & B11111000) + 8;
+    return;
+  }
+
+  long d = (long)pgm_read_dword(&font[byte(c) - 32]);  // character data
+  byte w = (byte)(d & 0x0F);  // character width
+  byte b = (byte)((d >> 4) & 0x07); // character baseline offset
+
+  byte j;
+  byte col; // The current column of the character
+
+  currentColumn += w + 1;
+  if (currentColumn > NUM_COLUMNS) {
+    newline();
+  }
+
+  for (; w > 0; --w) {
+    col = 0;
+   
+    // generate column of font bitmap
+    for (j = 0; j < 5; j++) {
+      col = (col << 1) | ((d >> 31) & 1);
+      d = d << 0x01;
+    }
+
+    // fill out top of character.
+    col = col << (b+1);
+
+    sendByte(col ^ textDraw);
+  }
+
+  // Draw gap ('kerning') between letters, 1px wide.
+  sendByte(textDraw);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB = PORTB | BIT_CS;
+}
+
+
+/**
+ * Clears the current line from the current column to the right edge of the
+ * screen.
+ *
+ */
+void GambyBase::clearLine () {
+  byte j;
+  DATA_MODE();
+  for (j = currentColumn; j <= LAST_COLUMN; j++) {
+    sendByte(textDraw);
+  }
+  // restore previous column.
+  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
+	      B00001111 & currentColumn); // & to mask out high bits
+
+  //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
+  //  digitalWrite(LCD_CS, HIGH);
+  PORTB = PORTB | BIT_CS;
+}
+
+/**
+ * Write a string to the display.
+ *
+ * @param s: the string to draw.
+ */
+void GambyBase::print (char* s) {
+  for (int c=0; s[c] != '\0'; c++)
+    drawChar(s[c]);
+}
+
+
+/**
+ * Write a string to the display, followed by a newline.
+ * To save a little memory, instead of using both `println()` and 
+ * `print()`, consider using only `print()` and 'manually' end your 
+ * strings with a 'newline' character ('`\n`').
+ *
+ * @param s: the string to draw.
+ */
+void GambyBase::println(char* s) {
+  for (int c=0; s[c] != '\0'; c++)
+    drawChar(s[c]);
+  newline();
+}
+
+
+/** 
+ * Write a PROGMEM string to the display.
+ *
+ * @param s: the PROGMEM address (e.g. the name of the variable) of the 
+ *     string to draw.
+ */
+void GambyBase::print_P(const char *s) {
+  char c = pgm_read_byte_near(s);
+  while (c != '\0') {
+    drawChar(c);
+    c = pgm_read_byte_near(++s);
+  }
+}
+
+
+/** 
+ * Write a PROGMEM string to the display.
+ * To save a little memory, instead of using both `println_P()` and 
+ * `print_P()`, consider using only `print_P()` and 'manually' end your 
+ * strings with a 'newline' character ('`\n`').
+ *
+ * @param s: the PROGMEM address of the string to draw.
+ */
+void GambyBase::println_P(const char *s) {
+  print_P(s);
+  newline();
+}
+
+
+/**
+ * Print a numeric value
+ *
+ * @param n  Any whole-number numeric value
+ * @param base The 'base' to use (`BIN`, `OCT`, `DEC`, or `HEX`)
+ */
+void GambyBase::print(long n, uint8_t base) {
+  if (base == 10 && n < 0) {
+      drawChar('-');
+      n = -n;
+  }
+  printNumber((unsigned long) n, base);
+}
+
+void GambyBase::print(unsigned long n, uint8_t base) {
+  printNumber(n, base);
+}
+
+void GambyBase::print(int n, uint8_t base) {
+  print((long) n, base);
+}
+
+void GambyBase::print(unsigned int n, uint8_t base) {
+  printNumber((unsigned long) n, base);
+}
+
+void GambyBase::print(unsigned char n, uint8_t base) {
+  printNumber((unsigned long) n, base);
+}
+
+void GambyBase::print(char c) {
+  drawChar(c);
+}
+
+void GambyBase::print(double number, uint8_t digits) {
+  printFloat(number, digits);
+}
+
+void GambyBase::print(float number, uint8_t digits) {
+  printFloat((double)number, digits);
+}
+
+void GambyBase::println(long n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyBase::println(unsigned long n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyBase::println(int n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyBase::println(unsigned int n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyBase::println(unsigned char n, uint8_t base) {
+  print(n, base);
+  newline();
+}
+
+void GambyBase::println(char c) {
+  drawChar(c);
+  newline();
+}
+
+void GambyBase::println(double number, uint8_t digits) {
+  printFloat(number, digits);
+  newline();
+}
+
+void GambyBase::println(float number, uint8_t digits) {
+  printFloat((double)number, digits);
+  newline();
+}
+
+
+/**
+ * Private. Do the actual printing of a non-decimal number.
+ * Separated from print() to avoid ambiguous overloading.
+ * 
+ */
+void GambyBase::printNumber(unsigned long n, uint8_t base) {
+  // TODO: The Arduino standard library doesn't use itoa(), see if what it
+  // does is faster.
+  char buf[10];
+  print(itoa(n, buf, base));
+}
+
+
+/**
+ * Private. Print a decimal number.
+ * Separated from print() to avoid ambiguous overloading.
+ * 
+ */
+void GambyBase::printFloat(double number, uint8_t digits) {
+  // This is based on code lifted from the Arduino's standard library
+  // hardware/arduino/cores/arduino/Print.cpp
+  // Comments are (largely) from original code
+  
+  // Handle negative numbers
+  if (number < 0.0) {
+    drawChar('-');
+    number = -number;
+  }
+
+  // Round correctly so that print(1.999, 2) prints as "2.00"
+  double rounding = 0.5;
+  for (uint8_t i=0; i<digits; ++i)
+    rounding /= 10.0;
+  
+  number += rounding;
+
+  // Extract the integer part of the number and print it
+  unsigned long int_part = (unsigned long)number;
+  double remainder = number - (double)int_part;
+  printNumber(int_part);
+
+  // Print the decimal point, but only if there are digits beyond
+  if (digits > 0)
+    drawChar('.');
+
+  // Extract digits from the remainder one at a time
+  while (digits-- > 0) {
+    remainder *= 10.0;
+    int toPrint = int(remainder);
+    print(toPrint);
+    remainder -= toPrint; 
+  } 
+}
 
 /****************************************************************************
  * 
  ****************************************************************************/
 
-byte GambyTextMode::drawMode = TEXT_NORMAL;
 byte GambyTextMode::scrollMode = SCROLL_NORMAL;
 byte GambyTextMode::wrapMode = WRAP_CHAR;
 
@@ -369,17 +670,6 @@ void GambyTextMode::scroll(int s) {
 
 
 /**
- * Set the horizontal position of the cursor.
- *
- * @param column  The horizontal position on screen (0-95).
- */
-void GambyTextMode::setColumn (byte column) {
-  sendCommand(SET_COLUMN_ADDR_1 + (column >> 4), 
-	      B00001111 & column); // & to mask out high bits
-}
-
-
-/**
  * Set the cursor's column and line (relative to current scrolling).
  *
  * @param col   The column (0 to 95)
@@ -393,281 +683,6 @@ void GambyTextMode::setPos(byte col, byte line) {
   sendCommand(SET_PAGE_ADDR | (byte)l);
   sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
 	      SET_COLUMN_ADDR_2 | (currentColumn & B00001111)); 
-}
-
-
-/**
- * Draw a character at the current screen position.
- *
- * @param c: is the ASCII character to draw.
- */
-void GambyTextMode::drawChar(char c) {
-
-  // Newline character. Bail.
-  if (c == '\n') {
-    newline();
-    return;
-  }
-
-  DATA_MODE();
-
-  if (c == '\t') {
-    // If the tab will exceed the screen width, new line:
-    if (currentColumn + 8 > NUM_COLUMNS) {
-      newline();
-      return;
-    }
-
-    // else, scootch in.
-    for (byte t = (((currentColumn + 1) & B11111000) + 8) - currentColumn; t > 0; t--)
-      sendByte(drawMode);
-    currentColumn = ((currentColumn + 1) & B11111000) + 8;
-    return;
-  }
-
-  long d = (long)pgm_read_dword(&font[byte(c) - 32]);  // character data
-  byte w = (byte)(d & 0x0F);  // character width
-  byte b = (byte)((d >> 4) & 0x07); // character baseline offset
-
-  byte j;
-  byte col; // The current column of the character
-
-  currentColumn += w + 1;
-  if (currentColumn > NUM_COLUMNS) {
-    newline();
-  }
-
-  for (; w > 0; --w) {
-    col = 0;
-   
-    // generate column of font bitmap
-    for (j = 0; j < 5; j++) {
-      col = (col << 1) | ((d >> 31) & 1);
-      d = d << 0x01;
-    }
-
-    // fill out top of character.
-    col = col << (b+1);
-
-    sendByte(col ^ drawMode);
-  }
-
-  // Draw gap ('kerning') between letters, 1px wide.
-  sendByte(drawMode);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB = PORTB | BIT_CS;
-}
-
-
-/**
- * Write a string to the display.
- *
- * @param s: the string to draw.
- */
-void GambyTextMode::print (char* s) {
-  for (int c=0; s[c] != '\0'; c++)
-    drawChar(s[c]);
-}
-
-
-/**
- * Write a string to the display, followed by a newline.
- * To save a little memory, instead of using both `println()` and 
- * `print()`, consider using only `print()` and 'manually' end your 
- * strings with a 'newline' character ('`\n`').
- *
- * @param s: the string to draw.
- */
-void GambyTextMode::println(char* s) {
-  for (int c=0; s[c] != '\0'; c++)
-    drawChar(s[c]);
-  newline();
-}
-
-
-/** 
- * Write a PROGMEM string to the display.
- *
- * @param s: the PROGMEM address (e.g. the name of the variable) of the 
- *     string to draw.
- */
-void GambyTextMode::print_P(const char *s) {
-  char c = pgm_read_byte_near(s);
-  while (c != '\0') {
-    drawChar(c);
-    c = pgm_read_byte_near(++s);
-  }
-}
-
-/** 
- * Write a PROGMEM string to the display.
- * To save a little memory, instead of using both `println_P()` and 
- * `print_P()`, consider using only `print_P()` and 'manually' end your 
- * strings with a 'newline' character ('`\n`').
- *
- * @param s: the PROGMEM address of the string to draw.
- */
-void GambyTextMode::println_P(const char *s) {
-  print_P(s);
-  newline();
-}
-
-
-/**
- * Print a numeric value
- *
- * @param n  Any whole-number numeric value
- * @param base The 'base' to use (`BIN`, `OCT`, `DEC`, or `HEX`)
- */
-void GambyTextMode::print(long n, uint8_t base) {
-  if (base == 10 && n < 0) {
-      drawChar('-');
-      n = -n;
-  }
-  printNumber((unsigned long) n, base);
-}
-
-void GambyTextMode::print(unsigned long n, uint8_t base) {
-  printNumber(n, base);
-}
-
-void GambyTextMode::print(int n, uint8_t base) {
-  print((long) n, base);
-}
-
-void GambyTextMode::print(unsigned int n, uint8_t base) {
-  printNumber((unsigned long) n, base);
-}
-
-void GambyTextMode::print(unsigned char n, uint8_t base) {
-  printNumber((unsigned long) n, base);
-}
-
-void GambyTextMode::print(char c) {
-  drawChar(c);
-}
-
-void GambyTextMode::print(double number, uint8_t digits) {
-  printFloat(number, digits);
-}
-
-void GambyTextMode::print(float number, uint8_t digits) {
-  printFloat((double)number, digits);
-}
-
-void GambyTextMode::println(long n, uint8_t base) {
-  print(n, base);
-  newline();
-}
-
-void GambyTextMode::println(unsigned long n, uint8_t base) {
-  print(n, base);
-  newline();
-}
-
-void GambyTextMode::println(int n, uint8_t base) {
-  print(n, base);
-  newline();
-}
-
-void GambyTextMode::println(unsigned int n, uint8_t base) {
-  print(n, base);
-  newline();
-}
-
-void GambyTextMode::println(unsigned char n, uint8_t base) {
-  print(n, base);
-  newline();
-}
-
-void GambyTextMode::println(char c) {
-  drawChar(c);
-  newline();
-}
-
-void GambyTextMode::println(double number, uint8_t digits) {
-  printFloat(number, digits);
-  newline();
-}
-
-void GambyTextMode::println(float number, uint8_t digits) {
-  printFloat((double)number, digits);
-  newline();
-}
-
-
-/**
- * Private. Do the actual printing of a non-decimal number.
- * Separated from print() to avoid ambiguous overloading.
- * 
- */
-void GambyTextMode::printNumber(unsigned long n, uint8_t base) {
-  // TODO: The Arduino standard library doesn't use itoa(), see if what it
-  // does is faster.
-  char buf[10];
-  print(itoa(n, buf, base));
-}
-
-
-/**
- * Private. Print a decimal number.
- * Separated from print() to avoid ambiguous overloading.
- * 
- */
-void GambyTextMode::printFloat(double number, uint8_t digits) {
-  // This is based on code lifted from the Arduino's standard library
-  // hardware/arduino/cores/arduino/Print.cpp
-  // Comments are (largely) from original code
-  
-  // Handle negative numbers
-  if (number < 0.0) {
-    drawChar('-');
-    number = -number;
-  }
-
-  // Round correctly so that print(1.999, 2) prints as "2.00"
-  double rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
-    rounding /= 10.0;
-  
-  number += rounding;
-
-  // Extract the integer part of the number and print it
-  unsigned long int_part = (unsigned long)number;
-  double remainder = number - (double)int_part;
-  printNumber(int_part);
-
-  // Print the decimal point, but only if there are digits beyond
-  if (digits > 0)
-    drawChar('.');
-
-  // Extract digits from the remainder one at a time
-  while (digits-- > 0) {
-    remainder *= 10.0;
-    int toPrint = int(remainder);
-    print(toPrint);
-    remainder -= toPrint; 
-  } 
-}
-
-/**
- * Clears the current line from the current column to the right edge of the
- * screen.
- *
- */
-void GambyTextMode::clearLine () {
-  byte j;
-  DATA_MODE();
-  for (j = currentColumn; j <= LAST_COLUMN; j++) {
-    sendByte(drawMode);
-  }
-  // restore previous column.
-  sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
-	      B00001111 & currentColumn); // & to mask out high bits
-
-  //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB = PORTB | BIT_CS;
 }
 
 
@@ -706,7 +721,6 @@ void GambyTextMode::newline() {
   sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2);
   currentColumn = 0;
   clearLine();
-
 }
 
 
@@ -738,6 +752,7 @@ void GambyBlockMode::clearScreen() {
       offscreen[i][j] = 0;
   clearDisplay();
 }
+
 
 /**
  * Retrieve the index (number) of the block at the given location.

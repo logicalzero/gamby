@@ -219,7 +219,8 @@ class GambyBase {
   void sendCommand(byte, byte);
   void clearDisplay();
   void readInputs();
-  void setPos(byte, byte);
+  virtual void setPos(byte, byte);
+  void setColumn(byte);
 
   byte getCharWidth(byte);
   byte getCharBaseline(byte);
@@ -227,29 +228,6 @@ class GambyBase {
   int getTextWidth_P(const char *);
   void drawIcon(const prog_uchar *);
   void drawIcon(const prog_uchar *, byte);
-
-  static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
-
-  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
-
-  // private:
-  byte currentPage;
-  byte currentColumn;
-
-};
-
-
-/**
- * Eight lines of scrolling, wrapping text using a proportional font. Also 
- * supports drawing 'icons:' 8 pixel high bitmaps of any width. GambyTextMode
- * is the lightest-weight of Gamby's modes; it uses no offscreen buffer, so
- * it takes up very little RAM.
- */
-class GambyTextMode: public GambyBase {
- public:
-  GambyTextMode();
-  void setPos(byte, byte);
-  void setColumn(byte);
   void drawChar(char);
   void print(char *);
   void print(long, uint8_t = 10);
@@ -272,17 +250,42 @@ class GambyTextMode: public GambyBase {
   void print_P(const char *);
   void println_P(const char *);
   void clearLine();
+  virtual void newline();
+
+  static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
+  static byte textDraw;
+
+  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
+
+  // private:
+  byte currentPage;
+  byte currentColumn;
+
+ private:
+  void printNumber(unsigned long, uint8_t = 10);
+  void printFloat(double, uint8_t = 2);
+
+};
+
+
+/**
+ * Eight lines of scrolling, wrapping text using a proportional font. Also 
+ * supports drawing 'icons:' 8 pixel high bitmaps of any width. GambyTextMode
+ * is the lightest-weight of Gamby's modes; it uses no offscreen buffer, so
+ * it takes up very little RAM.
+ */
+class GambyTextMode: public GambyBase {
+ public:
+  GambyTextMode();
+  void setPos(byte, byte);
   void clearScreen();
   void newline();
   void scroll(int);
 
   static byte wrapMode;   /**< How GAMBY should behave when text goes beyond the right margin. */
   static byte scrollMode; /**< How GAMBY should behave when text goes beyond the bottom of the screen. */
-  static byte drawMode;
 
  private:
-  void printNumber(unsigned long, uint8_t = 10);
-  void printFloat(double, uint8_t = 2);
   int offset;
 
 };
