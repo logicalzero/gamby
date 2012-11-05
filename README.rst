@@ -4,10 +4,13 @@ gamby README
 This repository contains (or will contain) the Arduino libraries for use with
 the GAMBY LCD/Game shield. 
 
-The initial test sketches will be checked into the /examples/ subdirectory.
-As the actual libraries are developed, code will be moved out of the sketches
-and into the actual .cpp/.h code; the test sketches will shrink and
-eventually disappear.
+
+Installation
+============
+
+For regular users, simply `download the latest ZIP file <https://github.com/logicalzero/gamby/archive/master.zip>`__ and follow the `instructions on the Arduino site <http://arduino.cc/en/Guide/Libraries>`__.
+
+You can also clone and/or fork the GitHub repository, of course, if you want to keep up to date and/or contribute to the project.
 
 
 Technical Notes
@@ -34,4 +37,6 @@ Strictly speaking, the LCD module on GAMBY is installed upside down; this was th
 TO DO
 =====
 
-See source code for ``@todo:`` tags in doc comments.
+* Port to Arduino Leonardo, possibly other Arduino models (moderately low priority at the moment)
+
+See source code for additional To-Do items; these are in ``@todo``/``TODO`` tags in comments.

@@ -14,11 +14,10 @@
 // TODO: Refactor buffer in GambyGraphicsMode/GambyBlockMode to allocate
 //    memory dynamically, allowing for a smaller display area to save RAM,
 //    adding a lightweight score display, et cetera. Longer-term.
-// TODO: Move most text drawing into GambyBase class for use in other modes.
-//    Maybe make GambyTextMode the base class? Requires renaming
-//    GambyTextMode::drawMode 
-// TODO: Modify the various GambyTextMode::println() methods to call
+// TODO: Modify the remaining GambyBase::println() methods to call
 //    printNumber()/printFloat() directly, reducing the extra stack depth.
+// TODO: Identify which little loops would be more efficient if flattened
+//    into multiple, discrete statements.
 
 // Other items:
 // ~~~~~~~~~~~~
@@ -541,7 +540,7 @@ void GambyBase::println(long n, uint8_t base) {
 }
 
 void GambyBase::println(unsigned long n, uint8_t base) {
-  print(n, base);
+  printNumber(n, base);
   newline();
 }
 
@@ -551,12 +550,12 @@ void GambyBase::println(int n, uint8_t base) {
 }
 
 void GambyBase::println(unsigned int n, uint8_t base) {
-  print(n, base);
+  printNumber((unsigned long)n, base);
   newline();
 }
 
 void GambyBase::println(unsigned char n, uint8_t base) {
-  print(n, base);
+  printNumber((unsigned long)n, base);
   newline();
 }
 
@@ -873,20 +872,20 @@ void GambyBlockMode::update() {
  * @param y2 The bottom edge of the region to update y1 to 15.
  */
 void GambyBlockMode::update(byte x1, byte y1, byte x2, byte y2) {
-  // TODO: This can probably be optimized.
+  // TODO: This can probably be further optimized.
 
   byte x, y, i;
   unsigned int oddBlock, evenBlock;
 
-  for (y = (y1 & ~1); y <= (y2 | 1); y += 2) {
-    setPos(x1 << 2, y >> 1);
+  for (y1 &= ~1; y1 <= (y2 | 1); y1 += 2) {
+    y = y1 >> 1;
+    setPos(x1 << 2, y);
     DATA_MODE();
     for (x=x1; x<=x2; x++) {
-      oddBlock = pgm_read_word_near(palette + ((offscreen[x][y >> 1] >> 4) & B00001111));
-      evenBlock = pgm_read_word_near(palette + (offscreen[x][y >> 1] & B00001111));
+      oddBlock = pgm_read_word_near(palette + ((offscreen[x][y] >> 4) & B00001111));
+      evenBlock = pgm_read_word_near(palette + (offscreen[x][y] & B00001111));
       for (i=0; i<4; i++) {
 	// Build a two-block set four bits at a time
-	//byte combo = (((oddBlock & B00001111) << 4) | (evenBlock & B00001111));
 	sendByte(((oddBlock & B00001111) << 4) | (evenBlock & B00001111));
 	oddBlock = oddBlock >> 4;
 	evenBlock = evenBlock >> 4;
@@ -900,7 +899,7 @@ void GambyBlockMode::update(byte x1, byte y1, byte x2, byte y2) {
 
 
 /**
- * Draw a filled rectangle.
+ * Draw a filled rectangle. The update happens immediately.
  *
  * @param x1 The left edge of the rectangle, 0 to 23.
  * @param y1 The top edge of the rectangle, 0 to 15.
@@ -917,7 +916,7 @@ void GambyBlockMode::rect(byte x1, byte y1, byte x2, byte y2, byte block) {
 
 
 /**
- * Draw an unfilled rectangle.
+ * Draw an unfilled rectangle. The update happens immediately.
  *
  * @param x1 The left edge of the box, 0 to 23.
  * @param y1 The top edge of the box, 0 to 15.
