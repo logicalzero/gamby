@@ -13,12 +13,12 @@ David R. Stokes (gamby@logicalzero.com) 9/11/2012
 #include <Gamby.h>
 #include <avr/pgmspace.h>
 
-const prog_uchar smiley8x8[] PROGMEM = {
+const unsigned char smiley8x8[] PROGMEM = {
   8, 8, 
   0x3c, 0x42, 0xad, 0xa1, 0xad, 0x91, 0x42, 0x3c
 };
 
-const prog_uchar smiley8x8_mask[] PROGMEM = {
+const unsigned char smiley8x8_mask[] PROGMEM = {
   8, 8, 
   0x3c, 0x7e, 0xff, 0xff, 0xff, 0xff, 0x7e, 0x3c
 };
@@ -229,7 +229,7 @@ unsigned long randomRects() {
 }
 
 
-unsigned long drawSpriteGrid(const prog_uchar *spriteIdx) {
+unsigned long drawSpriteGrid(const unsigned char *spriteIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, plain:\t");
@@ -246,7 +246,7 @@ unsigned long drawSpriteGrid(const prog_uchar *spriteIdx) {
 }
 
 
-unsigned long drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
+unsigned long drawSpriteGrid(const unsigned char *spriteIdx, const unsigned char *maskIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, masked:\t");
@@ -261,4 +261,3 @@ unsigned long drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *mask
   Serial.println(startTime, DEC);
   return startTime;
 }
-
