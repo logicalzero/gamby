@@ -16,7 +16,7 @@ by David R. Stokes (gamby@logicalzero.com) 2012-08-28
 // or all of the individual blocks, but a palette can have no more than 16 
 // blocks in it. Typically, you will have only one per sketch, but it is
 // possible to create more than one and switch between them.
-PROGMEM prog_uint16_t palette[] = {
+PROGMEM const uint16_t palette[] = {
     0x0000, //  0 All 'white' (block 0 should almost always be 0x0000) 
     0xffff, //  1 All 'black'
     0x5a5a, //  2 50% gray dither
@@ -47,7 +47,7 @@ void setup() {
   // just after initializing Gamby. You could, however, do this elsewhere in 
   // your sketch -- for example, if you had a role-playing game and had an 
   // 'indoor' and an 'outdoor' palette.
-  gamby.palette = blocks;
+  gamby.palette = palette;
 
   // That's all that's required! From here on, it's up to you. All of Gamby's
   // functionality is contained in the 'gamby' object, which you use like
@@ -62,4 +62,3 @@ void setup() {
 void loop () {
   // Your code here!
 }
-
