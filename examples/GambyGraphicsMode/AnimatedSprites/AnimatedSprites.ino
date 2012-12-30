@@ -18,7 +18,7 @@ by David R. Stokes (gamby@logicalzero.com) 2012-08-28
 
 // Two spinning balls, each with 4 frames of animation.
 // The first two numbers are the dimensions, the rest is the image data.
-PROGMEM prog_uchar ball1[] = {16, 16, 
+PROGMEM const unsigned char ball1[] = {16, 16, 
   // Frame 0
     7, 224,  31, 248,  53, 252, 127, 158, 127, 106, 255,  21, 255, 195, 255,   9, 
   216, 255, 162, 255, 216, 255, 100, 254, 120, 242,  63,   4,  31,  24,   7, 224,
@@ -33,7 +33,7 @@ PROGMEM prog_uchar ball1[] = {16, 16,
   210, 255, 172, 255, 240, 249, 127,   2, 127,   2,  63,   4,  31,  24,   7, 224
 };
 
-PROGMEM prog_uchar ball2[] = {16, 16, // width and height
+PROGMEM const unsigned char ball2[] = {16, 16, // width and height
   // Frame 0
     7, 224,  31, 248,  63, 252, 127, 126, 127, 214, 253,  43, 250, 213, 255,   3, 
   213, 171, 248,  85, 214, 171, 104,  86, 122, 162,  53,   4,  26,  24,   7, 224,
@@ -52,13 +52,13 @@ PROGMEM prog_uchar ball2[] = {16, 16, // width and height
 // out the entire square, which would cause one ball to clip the other if
 // they got too close. It is only a single frame; the shape of the ball does
 // not change as it animates. 
-PROGMEM prog_uchar ballMask[] = {16, 16, 
+PROGMEM const unsigned char ballMask[] = {16, 16, 
     7, 224,  31, 248,  63, 252, 127, 254, 127, 254, 255, 255, 255, 255, 255, 255, 
   255, 255, 255, 255, 255, 255, 127, 254, 127, 254,  63, 252,  31, 248,   7, 224
 };
 
 // An 'eraser' sprite, which is all white. It is also only a single frame.
-PROGMEM prog_uchar ballEraser[] = {16, 16, 
+PROGMEM const unsigned char ballEraser[] = {16, 16, 
  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
@@ -175,4 +175,3 @@ void loop() {
     nextRead = now + readInputTime;
   }
 }
-
