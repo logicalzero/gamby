@@ -3,7 +3,7 @@
 // we represent them as 8x8-pixel icons
 // this allows us to present a game field of 8x8 icons, with 32 px on the side
 
-PROGMEM prog_uchar jewels[8][9] = { 
+PROGMEM const unsigned char jewels[8][9] = { 
 // hexagon (orange)
 // . . . X . . . .
 // . . X . X . . .
@@ -95,9 +95,7 @@ PROGMEM prog_uchar jewels[8][9] = {
   {8, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000},
 };
 
-prog_uchar* get_jewel(unsigned id)
+const unsigned char* get_jewel(unsigned id)
 {
   return jewels[id];
 }
-
-

@@ -29,21 +29,21 @@
 // . . . . . . . .  . . . . . . . .  . . . . . . . .  . . . X . . . . 
 // . . . . . . . .  . . . . . . . .  . . . . . . . .  . . . X . . . . 
 
-PROGMEM prog_uchar sidebar_top[65] = {32,
+PROGMEM const unsigned char sidebar_top[65] = {32,
   B11111111, B01111111, B10111111, B10111111, B10111111, B01111111, B01111111, B11111111,
   B01111111, B11111111, B10111111, B11111111, B11011111, B10111111, B11111111, B10101111,
   B01111111, B10101111, B11111111, B01010111, B10111111, B11010111, B01111111, B10101011,
   B10011111, B00101011, B01011111, B10101101, B01011011, B10110111, B01001101, B00110111
 };
 
-PROGMEM prog_uchar sidebar_mid[65] = {32,
+PROGMEM const unsigned char sidebar_mid[65] = {32,
   B11010111, B01011101, B00000000, B11111111, B00000000, B01110111, B10011001, B10010101,
   B10010101, B01001001, B10000100, B00011101, B11100100, B00110001, B00011100, B11100001,
   B00110101, B00001100, B01110000, B10011001, B10010100, B10010100, B01001001, B10000000,
   B11111111, B10000000, B01001001, B10010100, B10010100, B01100100, B00000001, B00000000
 };
 
-PROGMEM prog_uchar sidebar_bot[65] = {32,
+PROGMEM const unsigned char sidebar_bot[65] = {32,
   B00100000, B00000010, B00000001, B00001000, B00100000, B00001001, B00000010, B00000000,
   B00000010, B00010000, B00000000, B00000010, B00000000, B00000100, B00000000, B00000000,
   B00000000, B00000001, B00000000, B00000000, B00000000, B00000000, B00000000, B00000000,
@@ -61,7 +61,7 @@ void draw_sidebar()
   draw_score();
 }
 
-PROGMEM prog_uchar digiticons[10][7] = {
+PROGMEM const unsigned char digiticons[10][7] = {
   // zero
   // . X X X X . 
   // X X . . X X 
@@ -180,7 +180,7 @@ void draw_score()
   unsigned local_score = score;
   do {
     unsigned digit = local_score % 10;
-    prog_uchar *icon = digiticons[digit];
+    const unsigned char *icon = digiticons[digit];
     byte char_width = pgm_read_byte_near(icon);
     startPos -= char_width;
     gamby.setPos(startPos, 5);
@@ -189,5 +189,3 @@ void draw_score()
     startPos -= 1;
   } while (local_score > 0);
 }
-
-
