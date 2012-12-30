@@ -254,7 +254,7 @@ void GambyBase::setColumn (byte column) {
  * @param icon: The icon's location in `PROGMEM` (e.g. the name of the 
  *    `PROGMEM` constant).
  */
-void GambyBase::drawIcon(const prog_uchar *icon) {
+void GambyBase::drawIcon(const unsigned char *icon) {
   DATA_MODE();
   byte w = pgm_read_byte_near(icon);
   currentColumn += w;
@@ -271,7 +271,7 @@ void GambyBase::drawIcon(const prog_uchar *icon) {
  *    `PROGMEM` constant).
  * @param frame  The frame number, 0 to (total frames)-1
  */
-void GambyBase::drawIcon(const prog_uchar *icon, byte frame) {
+void GambyBase::drawIcon(const unsigned char *icon, byte frame) {
   DATA_MODE();
   byte w = pgm_read_byte_near(icon);
   icon += w * frame;
@@ -1112,7 +1112,7 @@ boolean GambyGraphicsMode::getPatternPixel (byte x, byte y) {
  * @param x  The sprite's horizontal position
  * @param y  The sprite's vertical position
  */
-void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const unsigned char *sprite) {
   byte w = pgm_read_byte_near(sprite);
   byte h = pgm_read_byte_near(++sprite);
 
@@ -1143,7 +1143,7 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite) {
  *     constant's name) 
  * @param frame The frame number to draw (0 to (number of frames)-1)
  */
-void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, byte frame) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const unsigned char *sprite, byte frame) {
   unsigned int w = pgm_read_byte_near(sprite);
   unsigned int h = pgm_read_byte_near(++sprite);
 
@@ -1185,7 +1185,7 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, byt
  * @param mask: The address of the mask sprite in `PROGMEM` 
  *     (e.g. the constant's name) 
  */
-void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, const prog_uchar *mask) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const unsigned char *sprite, const unsigned char *mask) {
   byte w = pgm_read_byte_near(sprite);
   byte h = pgm_read_byte_near(++sprite);
 
@@ -1226,8 +1226,8 @@ void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, con
  * @param maskFrame The mask image's frame number to draw 
  *     (0 to (number of frames)-1)
  */
-void GambyGraphicsMode::drawSprite(byte x, byte y, const prog_uchar *sprite, byte frame, 
-				   const prog_uchar *mask, byte maskFrame) {
+void GambyGraphicsMode::drawSprite(byte x, byte y, const unsigned char *sprite, byte frame, 
+				   const unsigned char *mask, byte maskFrame) {
   byte w = pgm_read_byte_near(sprite);
   byte h = pgm_read_byte_near(++sprite);
 
