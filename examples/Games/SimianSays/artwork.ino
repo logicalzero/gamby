@@ -3,7 +3,7 @@
 // The introductory 'splash screen' with the game's title.
 // It is stored as 8-pixel-high 'icons' the full width of the LCD with a separate 'frame' for
 // each piece of the larger image.
-PROGMEM prog_uchar splashscreen[] = {96, 
+PROGMEM const unsigned char splashscreen[] = {96, 
   // Row 0 ("frame" 0)
   84, 0, 202, 228, 224, 50, 48, 114, 96, 226, 192, 0, 12, 158, 158, 12, 192, 224, 224, 0, 128, 224, 
   240, 240, 240, 0, 8, 144, 196, 232, 226, 196, 0, 132, 206, 206, 6, 0, 53, 48, 186, 153, 248, 241, 
@@ -45,7 +45,7 @@ PROGMEM prog_uchar splashscreen[] = {96,
 
 // The "Game Over" screen. It's only 16 pixels high and displayed in the middle of the LCD.
 // Each 8 pixel stripe is a different 'frame.'
-PROGMEM prog_uchar gameover[] = {
+PROGMEM const unsigned char gameover[] = {
   96, 
   0, 0, 120, 252, 206, 134, 195, 247, 255, 127, 0, 0, 204, 204, 238, 230, 230, 126, 252, 248, 0, 248, 252, 252, 192, 240, 124, 254, 254, 254, 192, 224, 112, 56, 252, 252, 248, 0, 248, 252, 254, 14, 134, 134, 252, 248, 112, 0, 0, 0, 0, 0, 128, 192, 240, 48, 48, 48, 240, 224, 156, 124, 252, 240, 192, 0, 128, 240, 254, 127, 15, 194, 224, 240, 48, 48, 48, 224, 192, 128, 30, 254, 252, 248, 124, 30, 14, 6, 12, 12, 128, 254, 255, 15, 0, 0,
   0, 0, 24, 57, 113, 97, 97, 127, 127, 60, 0, 15, 31, 31, 25, 56, 120, 120, 127, 63, 0, 15, 31, 31, 15, 1, 0, 31, 31, 15, 7, 1, 0, 112, 127, 127, 15, 0, 3, 15, 31, 63, 51, 49, 49, 56, 24, 0, 0, 0, 0, 0, 15, 31, 63, 48, 48, 56, 63, 31, 7, 0, 1, 7, 15, 31, 31, 7, 1, 0, 0, 7, 31, 63, 126, 103, 99, 99, 113, 49, 0, 63, 63, 31, 0, 0, 0, 0, 0, 28, 61, 57, 1, 0, 0, 0
@@ -54,7 +54,7 @@ PROGMEM prog_uchar gameover[] = {
 
 // The 'lives left' monkey icon.
 // It consists of a 2 frame icon, frame 0 is the top half, 1 is the bottom.
-PROGMEM prog_uchar monkeyIcon[] = {
+PROGMEM const unsigned char monkeyIcon[] = {
   17, // icon width
   // Top half of monkey face ("frame" 0)
   192, 96, 48, 248, 60, 206, 230, 15, 255, 63, 207, 230, 14, 252, 48, 32, 192,
@@ -65,7 +65,7 @@ PROGMEM prog_uchar monkeyIcon[] = {
 
 // The button images. This is a bit more complex: there are four buttons, each 3 lines tall,
 // each with 2 states. Different 'frames' are used for each of these.
-PROGMEM prog_uchar buttonIcons[] = {24,
+PROGMEM const unsigned char buttonIcons[] = {24,
   // button 1 'off' (frames 0-2)
   0, 0, 0, 0, 0, 0, 0, 0, 64, 96, 96, 224, 224, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -99,6 +99,3 @@ PROGMEM prog_uchar buttonIcons[] = {24,
   126, 255, 255, 255, 255, 255, 31, 15, 3, 33, 48, 60, 0, 0, 0, 63, 255, 255, 255, 255, 255, 255, 255, 126,
   0, 3, 7, 15, 31, 63, 127, 127, 127, 255, 255, 255, 248, 248, 248, 127, 127, 127, 63, 31, 15, 7, 3, 0
 };
-
-
-
