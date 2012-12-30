@@ -226,8 +226,8 @@ class GambyBase {
   byte getCharBaseline(byte);
   int getTextWidth(char *);
   int getTextWidth_P(const char *);
-  void drawIcon(const prog_uchar *);
-  void drawIcon(const prog_uchar *, byte);
+  void drawIcon(const unsigned char *);
+  void drawIcon(const unsigned char *, byte);
   void drawChar(char);
   void print(char *);
   void print(long, uint8_t = 10);
@@ -255,7 +255,7 @@ class GambyBase {
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
   static byte textDraw;
 
-  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
+  const int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
 
   // private:
   byte currentPage;
@@ -307,7 +307,7 @@ class GambyBlockMode: public GambyBase {
   void update();
   void update(byte, byte, byte, byte);
 
-  const prog_uint16_t* palette; /**< The palette of 16 4x4 pixel blocks */
+  const uint16_t* palette; /**< The palette of 16 4x4 pixel blocks */
   byte offscreen[NUM_BLOCK_COLUMNS][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
 
 };
@@ -334,10 +334,10 @@ class GambyGraphicsMode: public GambyBase {
   void circle(int, int, int);
   void disc(int, int, int);
 
-  void drawSprite(byte, byte, const prog_uchar *);
-  void drawSprite(byte, byte, const prog_uchar *, const prog_uchar *);
-  void drawSprite(byte, byte, const prog_uchar *, byte);
-  void drawSprite(byte, byte, const prog_uchar *, byte, const prog_uchar *, byte);
+  void drawSprite(byte, byte, const unsigned char *);
+  void drawSprite(byte, byte, const unsigned char *, const unsigned char *);
+  void drawSprite(byte, byte, const unsigned char *, byte);
+  void drawSprite(byte, byte, const unsigned char *, byte, const unsigned char *, byte);
 
   void drawText(int, int, char *);
   void drawText_P(int, int, const char *);

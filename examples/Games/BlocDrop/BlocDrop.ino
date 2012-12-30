@@ -35,7 +35,7 @@ unsigned int pieces[7][4] = {
 // There is a duplicate of each block used for 'dropped' pieces (`n+8`); this
 // makes it easy to ignore the currently falling piece's blocks when testing 
 // for collisions.
-PROGMEM prog_uint16_t palette[] = {
+PROGMEM const uint16_t palette[] = {
   0x0000, //  0: Empty
   0xf99f, //  1: Block 0 ("T")
   0xadaf, //  2: Block 1 ("-")
@@ -86,7 +86,7 @@ unsigned long lastInputTime; // The time at which gamby.readInputs() was last ca
 byte lastInputs;    // The state of the inputs the last time they were checked.
 
 // Bring in the font from the other tab (font.ino)
-extern prog_int32_t font[];
+extern const int32_t font[];
 
 GambyBlockMode gamby;
 

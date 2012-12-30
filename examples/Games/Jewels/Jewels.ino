@@ -200,7 +200,7 @@ Cursor cursor(board);
 // Score: deleting squares gains you points.
 unsigned score = 0;
 
-void blit_inverted(prog_uchar *icon)
+void blit_inverted(const unsigned char *icon)
 {
   DATA_MODE();
   byte length = pgm_read_byte_near(icon);
@@ -216,7 +216,7 @@ void draw_board()
     for (unsigned y = 0; y < board.height; y++) {
       // We might get called in the middle of a run-deletion operation, so we have to
       // be careful about masking out the run mark.
-      prog_uchar *icon = get_jewel(board.tile(x, y).jewel());
+      const unsigned char *icon = get_jewel(board.tile(x, y).jewel());
       gamby.setPos(x * kColumnPixels, y);
       bool inverted = false;
       inverted |= cursor.blink().state() && cursor.Equals(x, y);
@@ -330,8 +330,8 @@ void animate_swap_horizontal(byte leftX, byte bothY, bool holdHighlight)
 {
   // We are exchanging the tile at leftX,bothY with the tile at leftX+1,bothY.
   // Do a cute little animation thingy where the two tiles switch places.
-  prog_uchar *left_icon = get_jewel(board.tile(leftX, bothY).jewel());
-  prog_uchar *right_icon = get_jewel(board.tile(leftX+1, bothY).jewel());
+  const unsigned char *left_icon = get_jewel(board.tile(leftX, bothY).jewel());
+  const unsigned char *right_icon = get_jewel(board.tile(leftX+1, bothY).jewel());
   byte local_left[16];
   for (unsigned i = 0; i < 8; i++) {
     local_left[i] = pgm_read_byte_near(left_icon + i + 1); 
@@ -361,8 +361,8 @@ void animate_swap_horizontal(byte leftX, byte bothY, bool holdHighlight)
 void animate_swap_vertical(byte bothX, byte topY, bool holdHighlight)
 {
   // Exchange the tile at bothX, topY with the tile at bothX, topY+1.
-  prog_uchar *top_icon = get_jewel(board.tile(bothX, topY).jewel());
-  prog_uchar *bot_icon = get_jewel(board.tile(bothX, topY+1).jewel());
+  const unsigned char *top_icon = get_jewel(board.tile(bothX, topY).jewel());
+  const unsigned char *bot_icon = get_jewel(board.tile(bothX, topY+1).jewel());
   byte local_top[8];
   for (unsigned i = 0; i < 8; i++) local_top[i] = pgm_read_byte_near(top_icon + i + 1);
   byte local_bot[8];
@@ -512,4 +512,3 @@ void loop ()
     gamby.setPos(0,0);
   }
 }
-

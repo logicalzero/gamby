@@ -74,5 +74,3 @@ void loop () {
   // circle outline.
   gamby.update();
 }
-
-

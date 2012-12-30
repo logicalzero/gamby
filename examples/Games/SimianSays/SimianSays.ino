@@ -17,11 +17,11 @@ by David R. Stokes (gamby@logicalzero.com) 2012-09-18
 // Bring in the font from the 'font' tab (font.ino)
 
 // Bring in all the icons from the 'artwork' tab (artwork.ino)
-extern prog_int32_t font[];
-extern prog_uchar splashscreen[];
-extern prog_uchar gameover[];
-extern prog_uchar monkeyIcon[];
-extern prog_uchar buttonIcons[];
+extern const int32_t font[];
+extern const unsigned char splashscreen[];
+extern const unsigned char gameover[];
+extern const unsigned char monkeyIcon[];
+extern const unsigned char buttonIcons[];
 
 // Some sets of numbers. These don't actually change.
 int notes[] = {220, 247, 262, 294};  // The musical notes associated with each button
