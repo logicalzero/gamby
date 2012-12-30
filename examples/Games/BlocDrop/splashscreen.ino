@@ -1,7 +1,7 @@
 // The introductory 'splash screen' with the game's title.
 // It is stored as 8-pixel-high 'icons' the full width of the LCD with a 
 // separate 'frame' for each piece of the larger image.
-PROGMEM prog_uchar splashscreen[] = {
+PROGMEM const unsigned char splashscreen[] = {
   96, // Width
   // Row 0 ("frame" 0)
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 131, 131, 3, 3,
@@ -57,7 +57,7 @@ PROGMEM prog_uchar splashscreen[] = {
 // The 'Game Over' message. Like the splash screen, it is a multi-frame 'icon',
 // with each 'frame' comprising an 8 pixel row of the image. Unlike the splash
 // screen, this is smaller than the screen; it only displays over the 'well'. 
-PROGMEM prog_uchar gameover[] = {
+PROGMEM const unsigned char gameover[] = {
   // Width
   48,
   // Row 0 ("frame" 0)
