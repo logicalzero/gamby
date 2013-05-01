@@ -44,6 +44,8 @@
 #define DATA_MODE()    PORTB = (PORTB & ~BIT_CS) | BIT_RS;
 
 
+#define CHAR_WIDTH(c) (byte)(pgm_read_dword(&font[c]) & 0x0F);
+
 /****************************************************************************
  * 
  ****************************************************************************/
@@ -288,7 +290,7 @@ void GambyBase::drawIcon(const prog_uchar *icon, byte frame) {
  * @return     The character's with in pixels
  */
 byte GambyBase::getCharWidth(byte idx) {
-  return (byte)(pgm_read_dword(&font[idx]) & 0x0F); 
+  return CHAR_WIDTH(idx); //(byte)(pgm_read_dword(&font[idx]) & 0x0F); 
 }
 
 
@@ -313,7 +315,7 @@ int GambyBase::getTextWidth(char* s) {
   for (int i=0; s[i] != '\0'; i++) {
     char c = s[i]-32;
     if (c >= 0)
-      width += getCharWidth(c) + 1; // width + gutter
+      width += CHAR_WIDTH(c) + 1; // width + gutter
   }
   // No gutter after last character, so subtract it.
   return width-1;
@@ -332,7 +334,7 @@ int GambyBase::getTextWidth_P(const char *s) {
   while (c != '\0') {
     c -= 32;
     if (c > 0)
-      width += getCharWidth(c) + 1;
+      width += CHAR_WIDTH(c) + 1;
     c = pgm_read_byte_near(++s);
   }
   return width-1;
@@ -1275,18 +1277,16 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   // My addition: use simpler method if line is horizontal (y0==y1)
   if (y0 == y1) {
     // make sure x0 is smaller than x1
-    if (x0 > x1) {
+    if (x0 > x1)
       SWAP(x0,x1);
-    }
     drawHline(x0, x1, y0);
     return;
   }
   // My addition: use simpler method if line is vertical (x0==x1)
   if (x0 == x1) {
     // make sure y0 is smaller than y1
-    if (y0 > y1) {
+    if (y0 > y1)
       SWAP(y0,y1);
-    }
     drawVline(y0, y1, x0);
     return;
   }
@@ -1305,12 +1305,10 @@ void GambyGraphicsMode::line(int x0, int y0, int x1, int y1) {
   int deltax = x1 - x0;
   int deltay = abs(y1 - y0);
   int error = deltax >> 1;
-  int ystep = 1;
+  int ystep = y0 < y1 ? 1 : -1;
   int y = y0;
   int x = x0;
 
-  if (y0 >= y1)
-    ystep = -1;
   for (x = x0; x < x1; x++) {
     if (steep)
       setPixel((byte)y,(byte)x);
