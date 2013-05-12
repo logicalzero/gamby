@@ -190,6 +190,28 @@
 #define BIT_CS  	B00100000
 
 
+/****************************************************************************
+ * Transform flags
+ ****************************************************************************/
+
+#define HFLIP                     0b00000001
+#define VFLIP                     0b00000010
+#define ROTATE90                  0b00000100
+#define HFLIP_VFLIP               HFLIP | VFLIP
+#define ROTATE90_HFLIP            ROTATE90 | HFLIP
+
+#define ROTATE90_VFLIP            ROTATE90 | VFLIP
+#define ROTATE90_HFLIP_VFLIP      ROTATE90 | HFLIP | VFLIP
+#define ROTATE180                 HFLIP | VFLIP
+#define ROTATE180_HFLIP           VFLIP
+#define ROTATE180_VFLIP           HFLIP
+#define ROTATE180_HFLIP_VFLIP     0
+
+#define ROTATE270                 ROTATE90 | HFLIP | VFLIP
+#define ROTATE270_HFLIP           ROTATE90 | VFLIP
+#define ROTATE270_VFLIP           ROTATE90 | HFLIP
+#define ROTATE270_HFLIP_VFLIP     ROTATE90
+
 // ###########################################################################
 //
 // ###########################################################################
@@ -215,6 +237,7 @@ class GambyBase {
  public:
   void init();
   void sendByte(byte);
+  void sendByteLSB(byte);
   void sendCommand(byte);
   void sendCommand(byte, byte);
   void clearDisplay();
@@ -228,6 +251,7 @@ class GambyBase {
   int getTextWidth_P(const char *);
   void drawIcon(const prog_uchar *);
   void drawIcon(const prog_uchar *, byte);
+  void drawIcon(const prog_uchar *, byte, byte);
   void drawChar(char);
   void print(char *);
   void print(long, uint8_t = 10);

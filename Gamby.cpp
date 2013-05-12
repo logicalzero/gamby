@@ -142,6 +142,31 @@ void GambyBase::sendByte(byte data) {
   PORTB = PORTB | BIT_SID;
 }
 
+/**
+ * Send a byte to the LCD, least significant bit first
+ * (i.e. backwards).
+ *
+ * @param data: The byte to send
+ */
+void GambyBase::sendByteLSB(byte data) {
+  byte i;
+
+  PORTB = PORTB | BIT_SID | BIT_SCK;
+    
+  for (i=0; i<8; i++) {
+    if (data & 1)
+      PORTB = (PORTB & ~BIT_SCK) | BIT_SID;
+    else
+      PORTB = PORTB & ~(BIT_SCK | BIT_SID);
+    PORTB = PORTB | BIT_SCK;
+    data = data >> 0x01;
+  }
+
+  // Clock and data pins idle high
+  //  digitalWrite(LCD_SID, HIGH);
+  PORTB = PORTB | BIT_SID;
+}
+
 
 /**
  * Send a single-byte command to the LCD.
@@ -280,6 +305,53 @@ void GambyBase::drawIcon(const prog_uchar *icon, byte frame) {
   currentColumn += w;
   for (; w > 0; w--) {
     sendByte(pgm_read_byte_near(++icon));
+  }
+}
+
+/** 
+ * Draw an 8px high icon at the current position on screen. The icon itself
+ * is stored in PROGMEM.
+ *
+ * @param icon  The icon's location in `PROGMEM` (e.g. the name of the 
+ *    `PROGMEM` constant).
+ * @param frame  The frame number, 0 to (total frames)-1
+ * @param transform  The transform to apply, `HFLIP` and/or `VFLIP`
+ */
+void GambyBase::drawIcon(const prog_uchar *icon, byte frame, byte transform) {
+  DATA_MODE();
+  byte w = pgm_read_byte_near(icon);
+  currentColumn += w;
+
+  // This is fairly long, but it avoids doing conditionals every iteration.
+  // Program memory is cheaper than either SRAM or CPU cycles.
+
+  if (transform & VFLIP) {
+    if (transform & HFLIP) {
+      // Vertical and horizontal flips (same as rotate 180)
+      icon += w * (frame + 1) + 1;
+      for (; w > 0; w--) 
+	sendByteLSB(pgm_read_byte_near(--icon));      
+    }
+    else {
+      // Just vertical flip
+      icon += w * frame;
+      for (; w > 0; w--) 
+	sendByteLSB(pgm_read_byte_near(++icon));      
+    }
+  }
+  else if (transform & HFLIP) {
+    // Just horizontal flip
+    icon += w * (frame + 1) + 1;
+    for (; w > 0; w--) 
+      sendByte(pgm_read_byte_near(--icon));      
+  }
+  else {
+    // No transform. Same as normal drawIcon(), rewritten here to save a
+    // function call.
+    icon += w * frame;
+    for (; w > 0; w--) {
+      sendByte(pgm_read_byte_near(++icon));
+    }
   }
 }
 
