@@ -43,6 +43,8 @@
 #define COMMAND_MODE() PORTB = PORTB & ~(BIT_RS | BIT_CS);
 #define DATA_MODE()    PORTB = (PORTB & ~BIT_CS) | BIT_RS;
 
+#define SET_CS_HIGH()  PORTB |= BIT_CS;
+#define SET_CS_LOW()   PORTB = PORTB & ~BIT_CS;
 
 #define CHAR_WIDTH(c) (byte)(pgm_read_dword(&font[c]) & 0x0F);
 
@@ -177,8 +179,7 @@ void GambyBase::sendByteLSB(byte data) {
 void GambyBase::sendCommand (byte command) {
   COMMAND_MODE();
   sendByte(command);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB |= BIT_CS;
+  SET_CS_HIGH();
 }
 
 
@@ -192,8 +193,7 @@ void GambyBase::sendCommand(byte b1, byte b2) {
   COMMAND_MODE();
   sendByte(b1);
   sendByte(b2);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB |= BIT_CS;
+  SET_CS_HIGH();
 }
 
 
@@ -213,8 +213,7 @@ void GambyBase::clearDisplay () {
     for (j = 0; j < NUM_COLUMNS; j++) {
       sendByte(0);
     }
-    //    digitalWrite(LCD_CS, HIGH);
-    PORTB = PORTB | BIT_CS;
+    SET_CS_HIGH();
   }
   currentColumn = 0;
   currentPage = 0;
@@ -465,15 +464,18 @@ void GambyBase::drawChar(char c) {
   byte col; // The current column of the character
 
   currentColumn += w + 1;
+
   if (currentColumn > NUM_COLUMNS) {
     newline();
+    DATA_MODE();
+    currentColumn = w + 1;
   }
 
-  for (; w > 0; --w) {
+  for (; w; --w) {
     col = 0;
    
     // generate column of font bitmap
-    for (j = 0; j < 5; j++) {
+    for (j = 5; j; j--) {
       col = (col << 1) | ((d >> 31) & 1);
       d = d << 0x01;
     }
@@ -486,8 +488,8 @@ void GambyBase::drawChar(char c) {
 
   // Draw gap ('kerning') between letters, 1px wide.
   sendByte(textDraw);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB = PORTB | BIT_CS;
+
+  SET_CS_HIGH();
 }
 
 
@@ -506,9 +508,7 @@ void GambyBase::clearLine () {
   sendCommand(SET_COLUMN_ADDR_1 + ((currentColumn >> 4) & B00000111), 
 	      B00001111 & currentColumn); // & to mask out high bits
 
-  //sendCommand(SET_COLUMN_ADDR_1, SET_COLUMN_ADDR_2 | currentColumn);
-  //  digitalWrite(LCD_CS, HIGH);
-  PORTB = PORTB | BIT_CS;
+  SET_CS_HIGH();
 }
 
 /**
@@ -517,8 +517,8 @@ void GambyBase::clearLine () {
  * @param s: the string to draw.
  */
 void GambyBase::print (char* s) {
-  for (int c=0; s[c] != '\0'; c++)
-    drawChar(s[c]);
+  while (*s)
+    drawChar(*s++);
 }
 
 
@@ -531,8 +531,8 @@ void GambyBase::print (char* s) {
  * @param s: the string to draw.
  */
 void GambyBase::println(char* s) {
-  for (int c=0; s[c] != '\0'; c++)
-    drawChar(s[c]);
+  while (*s)
+    drawChar(*s++);
   newline();
 }
 
@@ -1120,8 +1120,7 @@ void GambyGraphicsMode::setPixel(byte x, byte y) {
  */
 void GambyGraphicsMode::update() {
   int c, r;
-  //  digitalWrite(LCD_CS, LOW);
-  PORTB = PORTB & ~BIT_CS;
+  SET_CS_LOW();
   for (r = 0; r < NUM_PAGES; r++) {
     for (c = 0; c < NUM_DIRTY_COLUMNS; c++) {
       //if (bitRead(dirtyBits[c], r)) {
