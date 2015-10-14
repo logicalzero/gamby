@@ -13,13 +13,13 @@ David R. Stokes (gamby@logicalzero.com) 9/11/2012
 #include <Gamby.h>
 #include <avr/pgmspace.h>
 
-const prog_uchar smiley8x8[] PROGMEM = {
-  8, 8, 
+const byte smiley8x8[] PROGMEM = {
+  8, 8,
   0x3c, 0x42, 0xad, 0xa1, 0xad, 0x91, 0x42, 0x3c
 };
 
-const prog_uchar smiley8x8_mask[] PROGMEM = {
-  8, 8, 
+const byte smiley8x8_mask[] PROGMEM = {
+  8, 8,
   0x3c, 0x7e, 0xff, 0xff, 0xff, 0xff, 0x7e, 0x3c
 };
 
@@ -40,43 +40,43 @@ unsigned long total_times[9] = {0,0,0,0,0,0,0,0,0};
 void loop () {
   Serial.print("== run ");
   Serial.println(runs, DEC);
-  
+
   gamby.clearScreen();
   total_times[0] += setPixelTest1();
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[1] += setPixelTest2();
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[2] += concentricCircles1();
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[3] += moire(0xFFFF);
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[4] += moire(PATTERN_GRAY);
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[5] += randomCircles();
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[6] += randomRects();
   delay(1000);
-  
+
   gamby.clearScreen();
   total_times[7] += drawSpriteGrid(smiley8x8);
-  delay(1000);  
-  
+  delay(1000);
+
   gamby.clearScreen();
   total_times[8] += drawSpriteGrid(smiley8x8, smiley8x8_mask);
   delay(1000);
-  
+
   if(!(runs%10)) {
     Serial.print("Total times so far: ");
     for(int i; i<9; i++) {
@@ -85,13 +85,13 @@ void loop () {
     }
     Serial.print("\n");
   }
-  
+
   runs++;
 }
 
 
 unsigned long setPixelTest1() {
-  byte r,c; 
+  byte r,c;
   Serial.print("setPixel(), explicit:\t");
   startTime = micros();
   for (r=0; r<NUM_ROWS; r++) {
@@ -107,7 +107,7 @@ unsigned long setPixelTest1() {
 
 
 unsigned long setPixelTest2() {
-  byte r,c; 
+  byte r,c;
   Serial.print("setPixel(), pattern:\t");
   startTime = micros();
   gamby.drawPattern = PATTERN_CHECKER;
@@ -131,7 +131,7 @@ unsigned long concentricCircles1() {
     p = p == 0 ? 0xFFFF : 0;
     gamby.drawPattern = p;
     gamby.disc(NUM_COLUMNS >> 1, NUM_ROWS >> 1, r);
-  }    
+  }
   gamby.update();
   startTime = micros() - startTime;
   Serial.println(startTime, DEC);
@@ -146,7 +146,7 @@ unsigned long concentricCircles2() {
   startTime = micros();
   for (r=NUM_ROWS>>1; r>1;r-=4) {
     gamby.circle(NUM_COLUMNS >> 1, NUM_ROWS >> 1, r);
-  }    
+  }
   gamby.update();
   startTime = micros() - startTime;
   Serial.println(startTime, DEC);
@@ -159,20 +159,20 @@ unsigned long moire(int pat) {
   gamby.drawPattern = pat;
   Serial.print("moire, patterned:\t");
   startTime = micros();
-  
-  for (i=0; i < NUM_COLUMNS; i+=3) 
+
+  for (i=0; i < NUM_COLUMNS; i+=3)
     gamby.line(NUM_COLUMNS >> 1, NUM_ROWS >> 1, i, 0);
   gamby.update();
 
-  for (i=0; i < NUM_ROWS; i+=3) 
+  for (i=0; i < NUM_ROWS; i+=3)
     gamby.line(NUM_COLUMNS >> 1, NUM_ROWS >> 1,NUM_COLUMNS-1,i);
   gamby.update();
 
-  for (i=NUM_COLUMNS-1; i >= 0; i-=3) 
+  for (i=NUM_COLUMNS-1; i >= 0; i-=3)
     gamby.line(i, NUM_ROWS-1, NUM_COLUMNS >> 1, NUM_ROWS >> 1);
   gamby.update();
 
-  for (i=NUM_ROWS-1; i >= 0; i-=3) 
+  for (i=NUM_ROWS-1; i >= 0; i-=3)
     gamby.line(NUM_COLUMNS >> 1, NUM_ROWS >> 1,0,i);
   gamby.update();
 
@@ -229,7 +229,7 @@ unsigned long randomRects() {
 }
 
 
-unsigned long drawSpriteGrid(const prog_uchar *spriteIdx) {
+unsigned long drawSpriteGrid(const byte *spriteIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, plain:\t");
@@ -246,7 +246,7 @@ unsigned long drawSpriteGrid(const prog_uchar *spriteIdx) {
 }
 
 
-unsigned long drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *maskIdx) {
+unsigned long drawSpriteGrid(const byte *spriteIdx, const byte *maskIdx) {
   gamby.drawPattern = PATTERN_GRAY;
   gamby.rect(0,0,NUM_COLUMNS-1, NUM_ROWS-1);
   Serial.print("Sprite grid, masked:\t");
@@ -261,4 +261,3 @@ unsigned long drawSpriteGrid(const prog_uchar *spriteIdx, const prog_uchar *mask
   Serial.println(startTime, DEC);
   return startTime;
 }
-

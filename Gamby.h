@@ -249,9 +249,10 @@ class GambyBase {
   byte getCharBaseline(byte);
   int getTextWidth(char *);
   int getTextWidth_P(const char *);
-  void drawIcon(const prog_uchar *);
-  void drawIcon(const prog_uchar *, byte);
-  void drawIcon(const prog_uchar *, byte, byte);
+  byte getIconWidth(const byte *);
+  void drawIcon(const byte *);
+  void drawIcon(const byte *, byte);
+  void drawIcon(const byte *, byte, byte);
   void drawChar(char);
   void print(char *);
   void print(long, uint8_t = 10);
@@ -274,12 +275,13 @@ class GambyBase {
   void print_P(const char *);
   void println_P(const char *);
   void clearLine();
+  void clearLineLeft();
   virtual void newline();
 
   static byte inputs;            /**< The D-Pad and button states. Set by readInputs(). */
   static byte textDraw;
 
-  const prog_int32_t* font; /**< The font to be used for drawing text, read from PROGMEM. */
+  const long* font; /**< The font to be used for drawing text, read from PROGMEM. */
 
   // private:
   byte currentPage;
@@ -331,7 +333,7 @@ class GambyBlockMode: public GambyBase {
   void update();
   void update(byte, byte, byte, byte);
 
-  const prog_uint16_t* palette; /**< The palette of 16 4x4 pixel blocks */
+  const word* palette; /**< The palette of 16 4x4 pixel blocks */
   byte offscreen[NUM_BLOCK_COLUMNS][NUM_PAGES]; /**< The offscreen buffer, where the screen is stored before being drawn */
 
 };
@@ -358,10 +360,13 @@ class GambyGraphicsMode: public GambyBase {
   void circle(int, int, int);
   void disc(int, int, int);
 
-  void drawSprite(byte, byte, const prog_uchar *);
-  void drawSprite(byte, byte, const prog_uchar *, const prog_uchar *);
-  void drawSprite(byte, byte, const prog_uchar *, byte);
-  void drawSprite(byte, byte, const prog_uchar *, byte, const prog_uchar *, byte);
+  byte getSpriteWidth(const byte *);
+  byte getSpriteHeight(const byte *);
+
+  void drawSprite(byte, byte, const byte *);
+  void drawSprite(byte, byte, const byte *, const byte *);
+  void drawSprite(byte, byte, const byte *, byte);
+  void drawSprite(byte, byte, const byte *, byte, const byte *, byte);
 
   void drawText(int, int, char *);
   void drawText_P(int, int, const char *);

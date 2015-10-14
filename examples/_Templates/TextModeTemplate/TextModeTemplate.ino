@@ -12,17 +12,17 @@ by David R. Stokes (gamby@logicalzero.com) 2012-07-06
 #include <Gamby.h>
 
 // Bring in the font from the 'font' tab (font.ino)
-extern prog_int32_t font[];
+extern const long font[];
 
 // Each of Gamby's 'modes' are wrapped in a class, a self-contained unit
 // that bundles together all the required functionality. To use a mode,
-// you must first create an 'instance' of its class -- a sort of working 
+// you must first create an 'instance' of its class -- a sort of working
 // copy. Your sketch should only use one.
 GambyTextMode gamby;
 
 void setup () {
   // Set the font. You generally need to do this only once, usually just after
-  // initializing Gamby. You could, however, do this elsewhere in your 
+  // initializing Gamby. You could, however, do this elsewhere in your
   // sketch -- for example, if you wanted to change fonts on the fly.
   gamby.font = font;
 
@@ -35,5 +35,3 @@ void setup () {
 void loop () {
   // Your code here!
 }
-
-

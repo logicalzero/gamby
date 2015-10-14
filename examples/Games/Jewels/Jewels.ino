@@ -7,14 +7,16 @@
 // Jewels fall from the top of an 8x8 grid. Pick a jewel with the d-pad, then
 // use the buttons to swap it with one of its neighbors. Make a line of three or
 // more matching jewels, and they will disappear, scoring you points; all the
-// jewels above will fall down to take their place, with new ones coming in 
+// jewels above will fall down to take their place, with new ones coming in
 // from above the screen.
 //
 // Game ends when there are no more legal moves. You win when the score counter
 // can no longer keep up with the results of your lucky and skilful play.
 //
 
-
+// NOTE: This version is currently incompatible with recent versions of the
+// Arduino IDE (more specifically, its version of the AVR PROGMEM libraries).
+// It can still be compiled using an earlier version (such as 1.0.5)
 
 // to do:
 // use a multiplier for multi-collapse moves
@@ -56,7 +58,7 @@ class Board
     {
       if (x < 0 || x >= width) return oob;
       if (y < 0 || y >= height) return oob;
-      return tiles[x][y]; 
+      return tiles[x][y];
     }
     bool swap(int fromX, int fromY, int toX, int toY)
     {
@@ -334,7 +336,7 @@ void animate_swap_horizontal(byte leftX, byte bothY, bool holdHighlight)
   prog_uchar *right_icon = get_jewel(board.tile(leftX+1, bothY).jewel());
   byte local_left[16];
   for (unsigned i = 0; i < 8; i++) {
-    local_left[i] = pgm_read_byte_near(left_icon + i + 1); 
+    local_left[i] = pgm_read_byte_near(left_icon + i + 1);
     local_left[i+8] = 0;
   }
   byte local_right[16];
@@ -342,7 +344,7 @@ void animate_swap_horizontal(byte leftX, byte bothY, bool holdHighlight)
     local_right[i] = 0;
     local_right[i+8] = pgm_read_byte_near(right_icon + i + 1);
   }
-  
+
   for (int stage = 0; stage < 9; stage++) {
     gamby.setPos(leftX * kColumnPixels, bothY);
     DATA_MODE();
@@ -403,9 +405,9 @@ void wait_for_button_release()
 bool swap_tiles_vertical(byte targetX, byte targetY)
 {
   animate_swap_vertical(cursor.x(), min(targetY, cursor.y()), true);
-  wait_for_button_release();  
-  
-  // Swap the values. 
+  wait_for_button_release();
+
+  // Swap the values.
   board.swap(cursor.x(), cursor.y(), targetX, targetY);
 
   // The swap should have created some deletable runs. Go find them.
@@ -423,9 +425,9 @@ bool swap_tiles_vertical(byte targetX, byte targetY)
 bool swap_tiles_horizontal(byte targetX, byte targetY)
 {
   animate_swap_horizontal(min(targetX, cursor.x()), cursor.y(), true);
-  wait_for_button_release();  
+  wait_for_button_release();
 
-  // Swap the values. 
+  // Swap the values.
   board.swap(cursor.x(), cursor.y(), targetX, targetY);
 
   // The swap should have created some deletable runs. Go find them.
@@ -444,7 +446,7 @@ bool check_inputs()
 {
   gamby.readInputs();
   bool redraw = false;
-  
+
   // See if the player wants to swap two tiles.
   // Only one swap is possible at a time.
   if (gamby.inputs & BUTTON_1 && cursor.y() > 0) {
@@ -460,10 +462,10 @@ bool check_inputs()
     return swap_tiles_horizontal(cursor.x() - 1, cursor.y());
   }
   else if (gamby.inputs & BUTTON_4 && cursor.y() < 7) {
-    // down  
+    // down
     return swap_tiles_vertical(cursor.x(), cursor.y() + 1);
   }
-  
+
   // See if the player wants to move the cursor.
   // Multiple cursor directions are possible at once.
   if (gamby.inputs & DPAD_UP) cursor.Move(0, -1);
@@ -493,7 +495,7 @@ void setup() {
   draw_sidebar();
 }
 
-void loop () 
+void loop ()
 {
   bool redraw = false;
   redraw |= shift_down();
@@ -512,4 +514,3 @@ void loop ()
     gamby.setPos(0,0);
   }
 }
-

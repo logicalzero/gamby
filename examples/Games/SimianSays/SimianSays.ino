@@ -1,5 +1,5 @@
 /*
-Simian Says - a simple memory game 
+Simian Says - a simple memory game
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The game shows a sequence of buttons to press. Repeat the pattern to
@@ -17,11 +17,11 @@ by David R. Stokes (gamby@logicalzero.com) 2012-09-18
 // Bring in the font from the 'font' tab (font.ino)
 
 // Bring in all the icons from the 'artwork' tab (artwork.ino)
-extern prog_int32_t font[];
-extern prog_uchar splashscreen[];
-extern prog_uchar gameover[];
-extern prog_uchar monkeyIcon[];
-extern prog_uchar buttonIcons[];
+extern const long font[];
+extern const byte splashscreen[];
+extern const byte gameover[];
+extern const byte monkeyIcon[];
+extern const byte buttonIcons[];
 
 // Some sets of numbers. These don't actually change.
 int notes[] = {220, 247, 262, 294};  // The musical notes associated with each button
@@ -31,7 +31,7 @@ byte buttonY[] = {0, 2, 2, 4};       // The vertical positions, by 8-pixel text 
 
 // Each of Gamby's 'modes' are wrapped in a class, a self-contained unit
 // that bundles together all the required functionality. To use a mode,
-// you must first create an 'instance' of its class -- a sort of working 
+// you must first create an 'instance' of its class -- a sort of working
 // copy. Your sketch should only use one.
 GambyTextMode gamby;
 
@@ -44,7 +44,7 @@ byte lives = 3;
 
 void setup () {
   gamby.font = font;
-  
+
   // Show the splash screen. It's an icon with 7 'frames',
   // each of which is one 8 pixel row of the large image.
   gamby.clearDisplay();
@@ -55,7 +55,7 @@ void setup () {
   gamby.setPos(0,7);
   gamby.print("Press any button to begin!");
   waitForAnyButton();
-  
+
   startGame();
 }
 
@@ -69,7 +69,7 @@ void loop () {
       sequenceLength++;
     }
     else {
-      // The player got the sequence wrong. 
+      // The player got the sequence wrong.
       // Play a rude sound, deduct a life and continue.
       tone(9,100);
       delay(1000);
@@ -99,7 +99,7 @@ void waitForAnyButton() {
 void drawScreen() {
   byte i;
   gamby.clearScreen();
-  
+
   // The 'lives left' monkeys
   for (i=0; i<lives; i++) {
     gamby.setPos(0,i*2);
@@ -107,11 +107,11 @@ void drawScreen() {
     gamby.setPos(0,i*2+1);
     gamby.drawIcon(monkeyIcon,1);
   }
-  
+
   // The buttons in their 'off' states
   for (i=0; i<4; i++)
     drawButton(i,false);
-  
+
   // The score
   gamby.setPos(0,7);
   gamby.print("Score: ");
@@ -133,15 +133,15 @@ void drawButton(byte button, boolean state) {
 void startGame() {
   // Pick a new random seed for the game.
   seed = micros();
-  
+
   // The sequence starts at length 1.
   sequenceLength = 1;
-  
+
   lives = 3;
-  
+
   // Update the screen: draw the buttons, the score, and the 'lives left' monkeys.
   drawScreen();
-  
+
   playing = true;
 }
 
@@ -168,14 +168,14 @@ byte readButton() {
   byte lastInputs, button;
   gamby.readInputs();
   lastInputs = gamby.inputs;
-  
+
   // Pause until a button is pressed.
   while(!(lastInputs & BUTTON_ANY)) {
     delay(50);
     gamby.readInputs();
     lastInputs = gamby.inputs;
   }
-  
+
   // Turn the 'inputs' bit into a button number, 0-3
   switch (lastInputs) {
     case BUTTON_1:
@@ -191,7 +191,7 @@ byte readButton() {
       button = 3;
       break;
   }
-  
+
   // Draw the button 'pressed' and start the button sound playing.
   drawButton(button, true);
   tone(9, notes[button]);
@@ -201,11 +201,11 @@ byte readButton() {
     delay(50);
     gamby.readInputs();
   }
-  
+
   // Draw the button 'unpressed' and stop the sound.
   drawButton(button, false);
   noTone(9);
-  
+
   return button;
 }
 
@@ -229,27 +229,27 @@ boolean getSequence() {
 // Show the 'game over' screen and pause before restarting.
 void gameOver() {
   playing = false;
-  
+
   gamby.clearDisplay();
   gamby.setPos(0,3);
   gamby.drawIcon(gameover, 0);
   gamby.setPos(0,4);
   gamby.drawIcon(gameover,1);
-  
+
   gamby.setPos(14,5);
   gamby.print("Your score: ");
   gamby.print(sequenceLength-1, DEC);
-  
+
   gamby.setPos(16,6);
   gamby.print("High score: ");
   gamby.print(highScore, DEC);
-  
+
   if (sequenceLength - 1 > highScore) {
     gamby.setPos(4,2);
     gamby.print("** New high score! **");
     highScore = sequenceLength - 1;
   }
-  
+
   waitForAnyButton();
   startGame();
 }
