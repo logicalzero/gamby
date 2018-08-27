@@ -15,7 +15,7 @@ GambyGraphicsMode	KEYWORD1
 #######################################
 
 COMMAND_MODE	KEYWORD2
-DATA_MODE	KEWORD2
+DATA_MODE	KEYWORD2
 
 sendByte	KEYWORD2
 sendCommand	KEYWORD2
